@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <!--
+    viewport: width=device-width prevents mobile browsers from lying about
+    screen width. initial-scale=1 prevents zoom. user-scalable=no stops
+    accidental pinch-zoom during gameplay (common on touch boards).
+    maximum-scale=1 is the iOS equivalent of user-scalable=no.
+  -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+
+  <!-- Prevents iOS from showing a phone-number link when it sees numbers -->
+  <meta name="format-detection" content="telephone=no" />
+
+  <!-- Allows the page to be added to iOS home screen as a full-screen app -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <title>RISK: Game of Thrones</title>
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+
+  <!-- =========================================================================
+    SCREEN: START
+    The landing/title screen. Static HTML — main.js wires up btn-start.
+  ========================================================================== -->
+  <div id="screen-start" class="screen screen-start">
+
+    <div class="start-title-block">
+      <div class="start-crest">⚔️</div>
+      <h1 class="start-title">RISK</h1>
+      <p class="start-subtitle">Game of Thrones</p>
+    </div>
+
+    <div class="start-houses">
+      <span>🐺</span>
+      <span>🦁</span>
+      <span>🦌</span>
+      <span>🌹</span>
+      <span>☀️</span>
+    </div>
+
+    <div class="start-actions">
+      <button id="btn-start" class="btn btn-primary btn-large">
+        ⚔️ New Game
+      </button>
+      <p class="start-version">Skirmish Mode · 2–5 Players · Hot Seat</p>
+    </div>
+
+  </div><!-- /screen-start -->
+
+
+  <!-- =========================================================================
+    SCREEN: PLAYER SETUP
+    HTML shell only — main.js injects the form rows into player-setup-container.
+  ========================================================================== -->
+  <div id="screen-player-setup" class="screen screen-player-setup">
+
+    <!--
+      player-setup-container is emptied and rebuilt by main.js every time
+      this screen is entered. No static children needed here.
+    -->
+    <div id="player-setup-container" class="player-setup-container"></div>
+
+  </div><!-- /screen-player-setup -->
+
+
+  <!-- =========================================================================
+    SCREEN: FIRST PLAYER
+    HTML shell only — main.js injects the die-roll rows into first-player-container.
+  ========================================================================== -->
+  <div id="screen-first-player" class="screen screen-first-player">
+
+    <div id="first-player-container" class="first-player-container"></div>
+
+  </div><!-- /screen-first-player -->
+
+
+  <!-- =========================================================================
+    SCREEN: GAME
+    The main gameplay screen. This is the most structurally important screen.
+    renderer.js paints INTO these containers; it never replaces them.
+    inputHandler.js attaches listeners to elements inside these containers.
+
+    Layout (portrait mobile, top → bottom):
+      ┌─────────────────────┐
+      │   #game-status-bar  │  ← phase name + current player
+      ├─────────────────────┤
+      │                     │
+      │   #game-map         │  ← SVG map (abstract placeholder for now)
+      │                     │
+      ├─────────────────────┤
+      │   #game-player-bar  │  ← mini player strip (all players, highlights current)
+      ├─────────────────────┤
+      │   #game-action-panel│  ← context-sensitive buttons for current phase
+      ├─────────────────────┤
+      │   #game-log         │  ← last few game events (scrollable)
+      └─────────────────────┘
+  ========================================================================== -->
+  <div id="screen-game" class="screen screen-game">
+
+    <!-- Status bar: shows current phase and whose turn it is -->
+    <div id="game-status-bar" class="game-status-bar">
+      <span id="game-phase-label" class="game-phase-label">Phase</span>
+      <span id="game-player-label" class="game-player-label">Player</span>
+      <span id="game-turn-label" class="game-turn-label">Turn 1</span>
+    </div>
+
+    <!-- Map area: renderer.js injects SVG nodes here -->
+    <div id="game-map" class="game-map">
+      <!--
+        The abstract placeholder map (circles + lines SVG) will be injected
+        by renderer.js. Do not put static content here.
+      -->
+    </div>
+
+    <!-- Player strip: one badge per player, renderer highlights current -->
+    <div id="game-player-bar" class="game-player-bar">
+      <!--
+        renderer.js injects one .player-badge per player here.
+        Each badge shows: sigil, name (truncated), territory count.
+      -->
+    </div>
+
+    <!-- Action panel: buttons change based on current phase -->
+    <div id="game-action-panel" class="game-action-panel">
+      <!--
+        renderer.js injects phase-appropriate buttons here.
+        inputHandler.js wires their click events after each render.
+
+        Example contents by phase:
+
+        REINFORCE:
+          <p id="action-instructions">Place 5 armies</p>
+          <div id="action-army-counter">Remaining: 5</div>
+          <button id="btn-end-reinforce">Done Reinforcing →</button>
+
+        ATTACK:
+          <p id="action-instructions">Select a territory to attack from</p>
+          <button id="btn-end-attack">End Attack Phase →</button>
+
+        COMBAT (mid-attack):
+          <div id="combat-display"> ... dice results ... </div>
+          <button id="btn-occupy">Move Armies In</button>
+
+        MANOEUVRE:
+          <p id="action-instructions">Move armies (optional)</p>
+          <button id="btn-skip-manoeuvre">Skip</button>
+          <button id="btn-end-manoeuvre">Done →</button>
+
+        DRAW:
+          <button id="btn-draw-card">Draw Card</button>
+          <button id="btn-end-turn">End Turn →</button>
+      -->
+    </div>
+
+    <!-- Game log: last N events, newest at top -->
+    <div id="game-log" class="game-log">
+      <!--
+        renderer.js injects <p class="log-entry"> elements here.
+        Newest entries go at the top.
+      -->
+    </div>
+
+  </div><!-- /screen-game -->
+
+
+  <!-- =========================================================================
+    SCREEN: GAME OVER
+    HTML shell only — main.js injects score rows into game-over-container.
+  ========================================================================== -->
+  <div id="screen-game-over" class="screen screen-game-over">
+
+    <div id="game-over-container" class="game-over-container"></div>
+
+  </div><!-- /screen-game-over -->
+
+
+  <!-- =========================================================================
+    COMBAT MODAL
+    A modal dialog that appears during the attack phase to show dice rolls
+    and let the attacker choose how many dice to roll.
+    Injected and controlled entirely by renderer.js + inputHandler.js.
+    Lives outside all screens so it can overlay any screen if needed.
+  ========================================================================== -->
+  <div id="combat-modal" class="modal" style="display:none;" aria-modal="true" role="dialog">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <!--
+        renderer.js injects combat UI here when an attack is initiated.
+        Typical content:
+
+        <h3>Battle</h3>
+        <div class="combat-territories">
+          <div class="combat-attacker">
+            <span class="territory-name">Winterfell</span>
+            <span class="army-count">5 armies</span>
+          </div>
+          <span class="combat-vs">⚔️</span>
+          <div class="combat-defender">
+            <span class="territory-name">The Twins</span>
+            <span class="army-count">3 armies</span>
+          </div>
+        </div>
+        <div class="dice-selector"> ... </div>
+        <div class="dice-results"> ... </div>
+        <div class="combat-actions"> ... </div>
+      -->
+    </div>
+  </div><!-- /combat-modal -->
+
+
+  <!-- =========================================================================
+    CARD PANEL
+    A slide-up panel showing the current player's territory cards.
+    Hidden by default; toggled by a button in the action panel.
+    Lives outside all screens so it can overlay the game screen cleanly.
+  ========================================================================== -->
+  <div id="card-panel" class="card-panel" style="display:none;">
+    <div class="card-panel-header">
+      <h3 class="card-panel-title">Your Cards</h3>
+      <button id="btn-close-cards" class="btn-icon">✕</button>
+    </div>
+    <div id="card-panel-body" class="card-panel-body">
+      <!--
+        renderer.js injects one .card-item per card here.
+        Each shows: emoji, card type, territory name.
+        Selected cards for trading get a .card-selected class.
+      -->
+    </div>
+    <div class="card-panel-footer">
+      <div id="card-trade-info" class="card-trade-info">
+        <!-- "Next trade worth: 6 armies" — injected by renderer -->
+      </div>
+      <button id="btn-trade-cards" class="btn btn-primary" disabled>
+        Trade Selected Set
+      </button>
+    </div>
+  </div><!-- /card-panel -->
+
+
+  <!-- =========================================================================
+    SCRIPT
+    type="module" is required for ES module imports (import/export syntax).
+    defer is implied by type="module" — scripts load after HTML is parsed.
+    Only main.js is loaded here; it imports everything else via ES modules.
+  ========================================================================== -->
+  <script type="module" src="js/main.js"></script>
+
+</body>
+</html>
