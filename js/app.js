@@ -1,5 +1,4 @@
-/* app.js — RISK: Game of Thrones — single bundled file */
-/* Do not edit directly — edit the source files in js/ and rebuild */
+/* app.js - RISK: Game of Thrones - single bundle - do not edit directly */
 
 /* ===== boardData.js ===== */
 // =============================================================================
@@ -22,7 +21,7 @@
 // Bonus values are from the official board.
 // -----------------------------------------------------------------------------
 
-var REGIONS = {
+const REGIONS = {
   "the-north": {
     name: "The North",
     bonus: 6,
@@ -148,7 +147,7 @@ var REGIONS = {
 //     We model this as direct adjacency here for simplicity.
 // -----------------------------------------------------------------------------
 
-var TERRITORIES = {
+const TERRITORIES = {
 
   // ── THE NORTH ──────────────────────────────────────────────────────────────
 
@@ -806,7 +805,7 @@ var TERRITORIES = {
 // color is a CSS color string used to tint territories and army badges.
 // -----------------------------------------------------------------------------
 
-var HOUSES = {
+const HOUSES = {
   "stark": {
     id: "stark",
     name: "House Stark",
@@ -862,7 +861,7 @@ var HOUSES = {
 // Wild cards can substitute for any type in a set.
 // -----------------------------------------------------------------------------
 
-var CARD_TYPES = {
+const CARD_TYPES = {
   footsoldier: { label: "Footsoldier", emoji: "⚔️" },
   knight:      { label: "Knight",      emoji: "🐴" },
   siege:       { label: "Siege",       emoji: "🏹" },
@@ -871,15 +870,15 @@ var CARD_TYPES = {
 
 // Trade-in values: index 0 = first set traded, index 1 = second, etc.
 // After the 6th set (index 5 = 15 armies), each subsequent set adds 5 more.
-var CARD_TRADE_VALUES = [4, 6, 8, 10, 12, 15];
-var CARD_TRADE_INCREMENT_AFTER_SIX = 5;
+const CARD_TRADE_VALUES = [4, 6, 8, 10, 12, 15];
+const CARD_TRADE_INCREMENT_AFTER_SIX = 5;
 
 // Matching territory bonus: if any card in a traded set matches a territory
 // the player owns, they place this many extra armies on that territory.
-var CARD_TERRITORY_MATCH_BONUS = 2;
+const CARD_TERRITORY_MATCH_BONUS = 2;
 
 // Wild card count in the deck.
-var WILD_CARD_COUNT = 2;
+const WILD_CARD_COUNT = 2;
 
 
 // -----------------------------------------------------------------------------
@@ -889,8 +888,8 @@ var WILD_CARD_COUNT = 2;
 // + region bonuses + card trade-in bonuses.
 // -----------------------------------------------------------------------------
 
-var MIN_ARMIES_PER_TURN = 3;
-var TERRITORY_DIVISOR = 3;
+const MIN_ARMIES_PER_TURN = 3;
+const TERRITORY_DIVISOR = 3;
 
 
 // -----------------------------------------------------------------------------
@@ -1016,6 +1015,7 @@ function shuffle(array) {
   return arr;
 }
 
+
 /* ===== gameState.js ===== */
 // =============================================================================
 // gameState.js
@@ -1036,12 +1036,13 @@ function shuffle(array) {
 // =============================================================================
 
 
+
 // -----------------------------------------------------------------------------
 // CONSTANTS — turn phases in order
 // Used to validate phase transitions and drive UI rendering.
 // -----------------------------------------------------------------------------
 
-var PHASES = {
+const PHASES = {
   SETUP:      "setup",       // Initial army placement
   REINFORCE:  "reinforce",   // Player places earned armies
   ATTACK:     "attack",      // Player attacks (optional)
@@ -1049,7 +1050,7 @@ var PHASES = {
   DRAW:       "draw",        // Draw a territory card if earned
 };
 
-var GAME_MODES = {
+const GAME_MODES = {
   SKIRMISH:    "skirmish",
   DOMINATION:  "domination",   // Phase 2 — stubbed
   WORLDATWAR:  "worldatwar",   // Phase 3 — stubbed
@@ -1973,6 +1974,7 @@ function _diceWord(count) {
   return count === 1 ? "die" : "dice";
 }
 
+
 /* ===== gameLogic.js ===== */
 // =============================================================================
 // gameLogic.js
@@ -1999,6 +2001,7 @@ function _diceWord(count) {
 //           → inputHandler calls renderer
 //             → renderer reads getState() and repaints
 // =============================================================================
+
 
 
 
@@ -2793,15 +2796,691 @@ function _shuffleArray(array) {
   return arr;
 }
 
-/* ===== renderer stub ===== */
-function renderGameScreen() { console.log('renderer: stub'); }
-function renderMap() {}
-function renderPlayerBar() {}
-function renderActionPanel() {}
-function renderLog() {}
 
-/* ===== inputHandler stub ===== */
-function initInputHandler(callbacks) { console.log('inputHandler: stub'); }
+/* ===== renderer.js ===== */
+// =============================================================================
+// renderer.js
+// Reads game state and paints the DOM. Never mutates state.
+// All functions are safe to call repeatedly — they fully replace their
+// target container's contents on each call.
+//
+// ENTRY POINT: renderGameScreen()
+// Called once when the game screen is first shown, then after every
+// state change by inputHandler.js.
+// =============================================================================
+
+
+// =============================================================================
+// SECTION 1 — ABSTRACT MAP COORDINATES
+// Each territory gets an (x, y) position on a 300x500 virtual canvas.
+// North at top, Dorne at bottom, west coast left, east coast right.
+// =============================================================================
+
+var MAP_VIEWBOX_W = 300;
+var MAP_VIEWBOX_H = 500;
+var NODE_RADIUS   = 13;
+
+var TERRITORY_COORDS = {
+  "castle-black":    { x: 170, y:  28 },
+  "karhold":         { x: 228, y:  48 },
+  "the-dreadfort":   { x: 200, y:  78 },
+  "winterfell":      { x: 148, y:  88 },
+  "deepwood-motte":  { x:  72, y:  78 },
+  "bear-island":     { x:  42, y:  52 },
+  "torrhen-square":  { x:  96, y: 108 },
+  "white-harbour":   { x: 196, y: 118 },
+  "moat-cailin":     { x: 130, y: 130 },
+  "pyke":            { x:  30, y: 162 },
+  "great-wyk":       { x:  12, y: 186 },
+  "old-wyk":         { x:  36, y: 192 },
+  "the-twins":       { x: 152, y: 158 },
+  "seagard":         { x:  88, y: 168 },
+  "riverrun":        { x:  98, y: 198 },
+  "harrenhal":       { x: 160, y: 198 },
+  "maidenpool":      { x: 218, y: 178 },
+  "the-eyrie":       { x: 246, y: 168 },
+  "gulltown":        { x: 268, y: 192 },
+  "hearts-home":     { x: 256, y: 148 },
+  "casterly-rock":   { x:  68, y: 228 },
+  "lannisport":      { x:  42, y: 248 },
+  "cleganes-keep":   { x:  90, y: 248 },
+  "golden-tooth":    { x:  80, y: 218 },
+  "oxcross":         { x: 112, y: 228 },
+  "kings-landing":   { x: 178, y: 238 },
+  "dragonstone":     { x: 224, y: 228 },
+  "crackclaw-point": { x: 216, y: 208 },
+  "highgarden":      { x:  96, y: 308 },
+  "oldtown":         { x:  50, y: 368 },
+  "brightwater-keep":{ x: 128, y: 328 },
+  "ashford":         { x: 130, y: 288 },
+  "horn-hill":       { x:  68, y: 348 },
+  "three-towers":    { x:  34, y: 316 },
+  "storms-end":      { x: 196, y: 308 },
+  "bronzegate":      { x: 168, y: 288 },
+  "felwood":         { x: 196, y: 348 },
+  "sunspear":        { x: 224, y: 448 },
+  "the-tor":         { x: 196, y: 408 },
+  "planky-town":     { x: 150, y: 438 },
+  "yronwood":        { x: 158, y: 398 }
+};
+
+var SHORT_NAMES = {
+  "castle-black":    "C.Black",
+  "the-dreadfort":   "Dreadfort",
+  "deepwood-motte":  "Deepwood",
+  "bear-island":     "Bear Isl",
+  "torrhen-square":  "Torrhen",
+  "white-harbour":   "W.Harbour",
+  "moat-cailin":     "M.Cailin",
+  "great-wyk":       "Gt.Wyk",
+  "old-wyk":         "Old Wyk",
+  "the-twins":       "Twins",
+  "the-eyrie":       "Eyrie",
+  "hearts-home":     "Hrt.Home",
+  "casterly-rock":   "C.Rock",
+  "cleganes-keep":   "Clegane",
+  "golden-tooth":    "Gld.Tooth",
+  "kings-landing":   "K.Landing",
+  "crackclaw-point": "Crkclaw",
+  "brightwater-keep":"Brightwtr",
+  "three-towers":    "3 Towers",
+  "storms-end":      "Storm's E",
+  "planky-town":     "Planky"
+};
+
+
+// =============================================================================
+// SECTION 2 — MAP SELECTION STATE
+// inputHandler writes here; renderMap reads it to draw highlights.
+// =============================================================================
+
+var _mapSel = {
+  selected:     null,
+  source:       null,
+  attackable:   [],
+  manoeuvrable: []
+};
+
+function setMapSelection(sel) {
+  _mapSel.selected     = sel.selected     || null;
+  _mapSel.source       = sel.source       || null;
+  _mapSel.attackable   = sel.attackable   || [];
+  _mapSel.manoeuvrable = sel.manoeuvrable || [];
+}
+
+function clearMapSelection() {
+  _mapSel = { selected: null, source: null, attackable: [], manoeuvrable: [] };
+}
+
+
+// =============================================================================
+// SECTION 3 — MAIN ENTRY POINT
+// =============================================================================
+
+function renderGameScreen() {
+  renderStatusBar();
+  renderMap();
+  renderPlayerBar();
+  renderActionPanel();
+  renderLog();
+}
+
+
+// =============================================================================
+// SECTION 4 — STATUS BAR
+// =============================================================================
+
+function renderStatusBar() {
+  var state  = getState();
+  var player = state.players[state.currentPlayerIndex];
+  var house  = HOUSES[player.houseId];
+
+  var phaseNames = {
+    "setup":     "Setup",
+    "reinforce": "Reinforce",
+    "attack":    "Attack",
+    "manoeuvre": "Manoeuvre",
+    "draw":      "Draw"
+  };
+
+  var phaseEl  = document.getElementById("game-phase-label");
+  var playerEl = document.getElementById("game-player-label");
+  var turnEl   = document.getElementById("game-turn-label");
+  var bar      = document.getElementById("game-status-bar");
+
+  if (phaseEl)  phaseEl.textContent  = phaseNames[state.phase] || state.phase;
+  if (playerEl) playerEl.textContent = house.sigil + " " + player.name;
+  if (turnEl)   turnEl.textContent   = "Turn " + state.turnNumber;
+  if (bar)      bar.style.borderBottomColor = house.color;
+}
+
+
+// =============================================================================
+// SECTION 5 — MAP
+// =============================================================================
+
+function renderMap() {
+  var mapEl = document.getElementById("game-map");
+  if (!mapEl) return;
+
+  var territories = getTerritoryDisplayData();
+  var svgLines = "";
+  var svgNodes = "";
+
+  // Draw connection lines first (so circles sit on top).
+  var drawn = {};
+  var i, j, t, adjId, key, fc, tc;
+  for (i = 0; i < territories.length; i++) {
+    t  = territories[i];
+    fc = TERRITORY_COORDS[t.id];
+    if (!fc) continue;
+    for (j = 0; j < t.adjacentTo.length; j++) {
+      adjId = t.adjacentTo[j];
+      key   = t.id < adjId ? t.id + "|" + adjId : adjId + "|" + t.id;
+      if (drawn[key]) continue;
+      drawn[key] = true;
+      tc = TERRITORY_COORDS[adjId];
+      if (!tc) continue;
+      svgLines += '<line x1="' + fc.x + '" y1="' + fc.y
+        + '" x2="' + tc.x + '" y2="' + tc.y
+        + '" class="territory-connection"/>';
+    }
+  }
+
+  // Draw territory circles.
+  for (i = 0; i < territories.length; i++) {
+    t = territories[i];
+    var coord = TERRITORY_COORDS[t.id];
+    if (!coord) continue;
+
+    var isSelected     = _mapSel.selected    === t.id;
+    var isSource       = _mapSel.source      === t.id;
+    var isAttackable   = _mapSel.attackable.indexOf(t.id)   >= 0;
+    var isManoeuvrable = _mapSel.manoeuvrable.indexOf(t.id) >= 0;
+
+    var fill        = t.owner === "neutral" ? "#3a3530" : t.ownerColor;
+    var stroke      = "#1a1612";
+    var strokeWidth = 1.5;
+    if (isSelected || isSource) { stroke = "#c9a84c"; strokeWidth = 3; }
+
+    // Highlight rings (drawn before the circle so circle sits on top of ring)
+    if (isAttackable) {
+      svgNodes += '<circle cx="' + coord.x + '" cy="' + coord.y
+        + '" r="' + (NODE_RADIUS + 5) + '" class="territory-attackable-ring"/>';
+    }
+    if (isManoeuvrable) {
+      svgNodes += '<circle cx="' + coord.x + '" cy="' + coord.y
+        + '" r="' + (NODE_RADIUS + 5) + '" class="territory-manoeuvre-ring"/>';
+    }
+    if (isSelected || isSource) {
+      svgNodes += '<circle cx="' + coord.x + '" cy="' + coord.y
+        + '" r="' + (NODE_RADIUS + 5) + '" class="territory-selected-ring"/>';
+    }
+
+    // Territory circle
+    svgNodes += '<circle'
+      + ' id="node-' + t.id + '"'
+      + ' cx="' + coord.x + '" cy="' + coord.y + '"'
+      + ' r="'  + NODE_RADIUS + '"'
+      + ' fill="' + fill + '"'
+      + ' stroke="' + stroke + '" stroke-width="' + strokeWidth + '"'
+      + ' class="territory-node"'
+      + ' data-id="' + t.id + '"'
+      + '/>';
+
+    // Castle / port badge
+    if (t.hasCastle || t.hasPort) {
+      svgNodes += '<text x="' + coord.x + '" y="' + (coord.y + 4) + '"'
+        + ' text-anchor="middle" font-size="6"'
+        + ' fill="rgba(232,220,200,0.55)" pointer-events="none">'
+        + (t.hasCastle ? "C" : "") + (t.hasPort ? "P" : "")
+        + "</text>";
+    }
+
+    // Short name label below circle
+    var label = SHORT_NAMES[t.id] || (t.name.length > 8 ? t.name.slice(0, 7) + "." : t.name);
+    svgNodes += '<text x="' + coord.x + '" y="' + (coord.y + NODE_RADIUS + 9) + '"'
+      + ' class="territory-label" pointer-events="none">'
+      + label + "</text>";
+  }
+
+  var svg = '<svg viewBox="0 0 ' + MAP_VIEWBOX_W + ' ' + MAP_VIEWBOX_H + '"'
+    + ' xmlns="http://www.w3.org/2000/svg"'
+    + ' id="map-svg" style="width:100%;height:100%;display:block;">'
+    + svgLines + svgNodes
+    + "</svg>";
+
+  mapEl.innerHTML = svg;
+
+  // Army badges — HTML divs absolutely positioned over the SVG.
+  _renderArmyBadges(mapEl, territories);
+
+  // Tap listeners on the SVG.
+  var svgEl = mapEl.querySelector("svg");
+  if (svgEl) {
+    svgEl.addEventListener("click", function(e) {
+      var el = e.target;
+      while (el && el !== svgEl) {
+        var tid = el.getAttribute("data-id");
+        if (tid) { handleTerritoryTap(tid); return; }
+        el = el.parentNode;
+      }
+    });
+  }
+}
+
+function _renderArmyBadges(mapEl, territories) {
+  // Remove existing badges.
+  var old = mapEl.querySelectorAll(".army-badge");
+  for (var i = 0; i < old.length; i++) {
+    if (old[i].parentNode) old[i].parentNode.removeChild(old[i]);
+  }
+
+  var svgEl = mapEl.querySelector("svg");
+  if (!svgEl) return;
+  var rect   = svgEl.getBoundingClientRect();
+  var scaleX = rect.width  / MAP_VIEWBOX_W;
+  var scaleY = rect.height / MAP_VIEWBOX_H;
+
+  for (var j = 0; j < territories.length; j++) {
+    var t     = territories[j];
+    var coord = TERRITORY_COORDS[t.id];
+    if (!coord) continue;
+
+    var badge = document.createElement("div");
+    badge.className   = "army-badge";
+    badge.textContent = t.armies;
+    badge.style.left  = (coord.x * scaleX) + "px";
+    badge.style.top   = (coord.y * scaleY) + "px";
+
+    if (t.owner !== "neutral") {
+      badge.style.borderColor = t.ownerColor;
+      badge.style.color       = t.ownerColor;
+    }
+
+    mapEl.appendChild(badge);
+  }
+}
+
+
+// =============================================================================
+// SECTION 6 — PLAYER BAR
+// =============================================================================
+
+function renderPlayerBar() {
+  var bar = document.getElementById("game-player-bar");
+  if (!bar) return;
+
+  var players = getPlayerDisplayData();
+  var html = "";
+
+  for (var i = 0; i < players.length; i++) {
+    var p       = players[i];
+    var classes = "player-badge";
+    if (p.isCurrentPlayer) classes += " player-badge-active";
+    if (p.isEliminated)    classes += " player-badge-eliminated";
+    var borderCol = p.isCurrentPlayer ? p.color : "transparent";
+
+    html += '<div class="' + classes + '" style="border-color:' + borderCol + '">'
+      + '<span class="player-badge-sigil">' + p.sigil + "</span>"
+      + '<span class="player-badge-name">'
+      + (p.name.length > 7 ? p.name.slice(0, 6) + "..." : p.name)
+      + "</span>"
+      + '<span class="player-badge-count">' + p.territoriesOwned + " T</span>"
+      + "</div>";
+  }
+
+  bar.innerHTML = html;
+}
+
+
+// =============================================================================
+// SECTION 7 — ACTION PANEL
+// =============================================================================
+
+function renderActionPanel() {
+  var panel = document.getElementById("game-action-panel");
+  if (!panel) return;
+
+  var state  = getState();
+  var player = state.players[state.currentPlayerIndex];
+
+  if (mustTradeCards()) {
+    var cd = getCardDisplayData();
+    panel.innerHTML = '<p class="action-instructions" style="color:#e74c3c">'
+      + "You have " + player.cards.length + " cards. Trade a set now.</p>"
+      + '<button id="btn-view-cards" class="btn btn-primary" style="width:100%">'
+      + "Open Cards (" + cd.nextTradeValue + " armies)</button>";
+    return;
+  }
+
+  var html = "";
+
+  if (state.phase === "reinforce") {
+    var owed = getReinforceCount();
+    html = '<p class="action-instructions">Place your armies on owned territories</p>'
+      + '<div class="action-army-counter" id="action-army-counter">' + owed + " armies left</div>"
+      + '<div class="action-btn-row">'
+      + '<button id="btn-view-cards" class="btn btn-secondary">Cards</button>'
+      + '<button id="btn-end-reinforce" class="btn btn-primary" disabled>Done</button>'
+      + "</div>";
+
+  } else if (state.phase === "attack") {
+    if (state.activeAttack && state.activeAttack.resolved && state.activeAttack.conquered) {
+      var from   = state.territories[state.activeAttack.fromTerritoryId];
+      var minMov = state.activeAttack.attackerDice;
+      var maxMov = from ? from.armies - 1 : minMov;
+      html = '<p class="action-instructions">Territory captured! Move armies in.</p>'
+        + '<div style="display:flex;align-items:center;justify-content:center;gap:16px;margin:4px 0">'
+        + '<button id="btn-occupy-less" class="btn btn-secondary" style="padding:2px 14px;min-height:36px">-</button>'
+        + '<span id="occupy-count" style="font-size:1.4rem;font-weight:700;color:#c9a84c">' + minMov + "</span>"
+        + '<button id="btn-occupy-more" class="btn btn-secondary" style="padding:2px 14px;min-height:36px">+</button>'
+        + "</div>"
+        + '<button id="btn-occupy-confirm" class="btn btn-primary" style="width:100%"'
+        + ' data-min="' + minMov + '" data-max="' + maxMov + '">Move In</button>';
+    } else {
+      html = '<p class="action-instructions">Tap your territory to attack from, then tap target</p>'
+        + '<div class="action-btn-row">'
+        + '<button id="btn-view-cards" class="btn btn-secondary">Cards</button>'
+        + '<button id="btn-end-attack" class="btn btn-primary">End Attack</button>'
+        + "</div>";
+    }
+
+  } else if (state.phase === "manoeuvre") {
+    if (state.manoeuvreUsed) {
+      html = '<p class="action-instructions">Manoeuvre done.</p>'
+        + '<button id="btn-end-manoeuvre" class="btn btn-primary" style="width:100%">End Turn Phase</button>';
+    } else {
+      html = '<p class="action-instructions">Move armies to one adjacent territory (optional)</p>'
+        + '<div class="action-btn-row">'
+        + '<button id="btn-skip-manoeuvre" class="btn btn-secondary">Skip</button>'
+        + '<button id="btn-end-manoeuvre" class="btn btn-primary" disabled>Done</button>'
+        + "</div>";
+    }
+
+  } else if (state.phase === "draw") {
+    var canDraw = player.conqueredThisTurn;
+    html = '<p class="action-instructions">'
+      + (canDraw ? "Draw a card, then end your turn." : "No conquest — end your turn.")
+      + "</p>"
+      + '<div class="action-btn-row">'
+      + '<button id="btn-draw-card" class="btn btn-secondary"' + (canDraw ? "" : " disabled") + ">Draw Card</button>"
+      + '<button id="btn-end-turn" class="btn btn-primary">End Turn</button>'
+      + "</div>";
+
+  } else {
+    html = '<p class="action-instructions">Loading...</p>';
+  }
+
+  panel.innerHTML = html;
+}
+
+
+// =============================================================================
+// SECTION 8 — COMBAT MODAL
+// =============================================================================
+
+function showCombatModal(fromId, toId) {
+  var modal = document.getElementById("combat-modal");
+  if (!modal) return;
+
+  var state   = getState();
+  var fromT   = state.territories[fromId];
+  var toT     = state.territories[toId];
+  var fromSt  = TERRITORIES[fromId];
+  var toSt    = TERRITORIES[toId];
+  var fromH   = fromT && fromT.owner !== "neutral" ? (HOUSES[fromT.owner] || {}) : {};
+  var toH     = toT   && toT.owner   !== "neutral" ? (HOUSES[toT.owner]   || {}) : {};
+
+  var maxDice = fromT ? Math.min(3, fromT.armies - 1) : 1;
+  var diceHtml = "";
+  for (var d = 1; d <= maxDice; d++) {
+    diceHtml += '<button class="dice-btn' + (d === maxDice ? " dice-btn-selected" : "") + '"'
+      + ' data-dice="' + d + '">' + d + "</button>";
+  }
+
+  var content = modal.querySelector(".modal-content");
+  if (!content) return;
+
+  content.innerHTML = "<h3>Battle</h3>"
+    + '<div class="combat-territories">'
+    + '<div class="combat-attacker">'
+    + '<span style="font-size:1.4rem">' + (fromH.sigil || "") + "</span>"
+    + '<span class="territory-name" style="color:' + (fromH.color || "#aaa") + '">'
+    + (fromSt ? fromSt.name : fromId) + "</span>"
+    + '<span class="army-count">' + (fromT ? fromT.armies : "?") + " armies</span>"
+    + "</div>"
+    + '<span class="combat-vs">vs</span>'
+    + '<div class="combat-defender">'
+    + '<span style="font-size:1.4rem">' + (toH.sigil || "") + "</span>"
+    + '<span class="territory-name" style="color:' + (toH.color || "#aaa") + '">'
+    + (toSt ? toSt.name : toId) + "</span>"
+    + '<span class="army-count">' + (toT ? toT.armies : "?") + " armies</span>"
+    + "</div>"
+    + "</div>"
+    + '<div class="dice-selector">'
+    + '<span class="text-sm text-muted">Attack with:</span>'
+    + diceHtml
+    + "</div>"
+    + '<div id="combat-result-area"></div>'
+    + '<div class="combat-actions">'
+    + '<button id="btn-cancel-attack" class="btn btn-secondary">Cancel</button>'
+    + '<button id="btn-roll-attack" class="btn btn-primary"'
+    + ' data-from="' + fromId + '" data-to="' + toId + '" data-dice="' + maxDice + '">Roll Dice</button>'
+    + "</div>";
+
+  modal.style.display = "flex";
+
+  // Wire dice selector.
+  var diceBtns = content.querySelectorAll(".dice-btn");
+  var rollBtn  = content.querySelector("#btn-roll-attack");
+  for (var i = 0; i < diceBtns.length; i++) {
+    (function(btn) {
+      btn.addEventListener("click", function() {
+        for (var k = 0; k < diceBtns.length; k++) diceBtns[k].classList.remove("dice-btn-selected");
+        btn.classList.add("dice-btn-selected");
+        if (rollBtn) rollBtn.setAttribute("data-dice", btn.getAttribute("data-dice"));
+      });
+    })(diceBtns[i]);
+  }
+}
+
+function showCombatResult(result) {
+  var area = document.getElementById("combat-result-area");
+  if (!area) return;
+
+  var aSorted = result.attackerRolls.slice().sort(function(a,b){ return b-a; });
+  var dSorted = result.defenderRolls.slice().sort(function(a,b){ return b-a; });
+
+  var html = '<div class="dice-results">';
+
+  html += '<div class="dice-result-row"><span class="text-sm text-muted" style="min-width:60px">Attack</span>';
+  for (var i = 0; i < aSorted.length; i++) {
+    var aWon = i < dSorted.length ? aSorted[i] > dSorted[i] : true;
+    html += '<span class="dice-pip ' + (aWon ? "dice-result-win" : "dice-result-lose") + '">' + aSorted[i] + "</span>";
+  }
+  html += "</div>";
+
+  html += '<div class="dice-result-row"><span class="text-sm text-muted" style="min-width:60px">Defend</span>';
+  for (var j = 0; j < dSorted.length; j++) {
+    var dLost = j < aSorted.length ? dSorted[j] < aSorted[j] : false;
+    html += '<span class="dice-pip ' + (dLost ? "dice-result-lose" : "dice-result-win") + '">' + dSorted[j] + "</span>";
+  }
+  html += "</div>";
+
+  html += '<p class="text-sm text-muted" style="text-align:center;margin-top:8px">'
+    + "Attacker loses " + result.attackerLosses
+    + " | Defender loses " + result.defenderLosses + "</p>";
+
+  if (result.conquered) {
+    html += '<p class="text-gold" style="text-align:center;font-weight:700;margin-top:4px">Territory captured!</p>';
+  }
+
+  html += "</div>";
+  area.innerHTML = html;
+
+  var rollBtn   = document.getElementById("btn-roll-attack");
+  var cancelBtn = document.getElementById("btn-cancel-attack");
+
+  if (result.conquered) {
+    if (rollBtn)   rollBtn.style.display = "none";
+    if (cancelBtn) { cancelBtn.textContent = "Continue"; cancelBtn.id = "btn-close-combat"; }
+  } else {
+    var state      = getState();
+    var fromArmies = state.activeAttack && state.territories[state.activeAttack.fromTerritoryId]
+      ? state.territories[state.activeAttack.fromTerritoryId].armies : 0;
+    var toArmies   = state.activeAttack && state.territories[state.activeAttack.toTerritoryId]
+      ? state.territories[state.activeAttack.toTerritoryId].armies : 0;
+
+    if (fromArmies >= 2 && toArmies > 0) {
+      if (rollBtn) { rollBtn.style.display = ""; rollBtn.textContent = "Roll Again"; }
+    } else {
+      if (rollBtn)   rollBtn.style.display = "none";
+      if (cancelBtn) { cancelBtn.textContent = "Close"; cancelBtn.id = "btn-close-combat"; }
+    }
+  }
+}
+
+function hideCombatModal() {
+  var modal = document.getElementById("combat-modal");
+  if (modal) modal.style.display = "none";
+}
+
+
+// =============================================================================
+// SECTION 9 — CARD PANEL
+// =============================================================================
+
+function showCardPanel() {
+  var panel = document.getElementById("card-panel");
+  if (!panel) return;
+  _refreshCardPanel();
+  panel.style.display = "flex";
+}
+
+function hideCardPanel() {
+  var panel = document.getElementById("card-panel");
+  if (panel) panel.style.display = "none";
+}
+
+function _refreshCardPanel() {
+  var cardData  = getCardDisplayData();
+  var body      = document.getElementById("card-panel-body");
+  var tradeInfo = document.getElementById("card-trade-info");
+  var tradeBtn  = document.getElementById("btn-trade-cards");
+  if (!body) return;
+
+  if (cardData.cards.length === 0) {
+    body.innerHTML = '<p class="text-muted text-sm" style="text-align:center;padding:16px">No cards yet.</p>';
+  } else {
+    var html = "";
+    for (var i = 0; i < cardData.cards.length; i++) {
+      var card = cardData.cards[i];
+      html += '<div class="card-item" data-card-index="' + card.index + '">'
+        + '<span class="card-item-emoji">'     + card.emoji + "</span>"
+        + '<span class="card-item-type">'      + card.label + "</span>"
+        + '<span class="card-item-territory">' + (card.territoryName || "Wild") + "</span>"
+        + "</div>";
+    }
+    body.innerHTML = html;
+  }
+
+  if (tradeInfo) {
+    tradeInfo.textContent = cardData.mustTrade
+      ? "Must trade a set now!"
+      : "Next trade: " + cardData.nextTradeValue + " armies";
+  }
+  if (tradeBtn) tradeBtn.disabled = true;
+
+  // Wire card taps — inputHandler handles selection logic.
+  var items = body.querySelectorAll(".card-item");
+  for (var j = 0; j < items.length; j++) {
+    (function(item) {
+      item.addEventListener("click", function() {
+        handleCardTap(parseInt(item.getAttribute("data-card-index"), 10));
+      });
+    })(items[j]);
+  }
+}
+
+function updateCardSelection(selectedIndices) {
+  var items = document.querySelectorAll("#card-panel-body .card-item");
+  for (var i = 0; i < items.length; i++) {
+    var idx = parseInt(items[i].getAttribute("data-card-index"), 10);
+    var isSelected = false;
+    for (var j = 0; j < selectedIndices.length; j++) {
+      if (selectedIndices[j] === idx) { isSelected = true; break; }
+    }
+    if (isSelected) items[i].classList.add("card-selected");
+    else            items[i].classList.remove("card-selected");
+  }
+  var tradeBtn = document.getElementById("btn-trade-cards");
+  if (tradeBtn) tradeBtn.disabled = (selectedIndices.length !== 3);
+}
+
+
+// =============================================================================
+// SECTION 10 — GAME LOG
+// =============================================================================
+
+function renderLog() {
+  var logEl = document.getElementById("game-log");
+  if (!logEl) return;
+  var entries = getLog();
+  var html = "";
+  var limit = Math.min(entries.length, 6);
+  for (var i = 0; i < limit; i++) {
+    html += '<p class="log-entry">' + _escHtml(entries[i]) + "</p>";
+  }
+  logEl.innerHTML = html;
+}
+
+
+// =============================================================================
+// SECTION 11 — UTILITIES
+// =============================================================================
+
+function _escHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// Tap handler stubs — inputHandler.js overwrites these after init.
+function handleTerritoryTap(id) {
+  console.log("Territory tapped: " + id + " (inputHandler not wired yet)");
+}
+
+function handleCardTap(index) {
+  console.log("Card tapped: " + index + " (inputHandler not wired yet)");
+}
+
+
+/* ===== inputHandler.js ===== */
+// =============================================================================
+// inputHandler.js — STUB
+// Full implementation is the next development step.
+// =============================================================================
+
+function initInputHandler(callbacks) {
+  console.log("inputHandler: stub — wiring basic close buttons only");
+
+  // Wire card panel close button so UI isn't completely dead.
+  var closeCards = document.getElementById("btn-close-cards");
+  if (closeCards) {
+    closeCards.addEventListener("click", function() { hideCardPanel(); });
+  }
+}
+
+
+/* ===== ai.js ===== */
+// =============================================================================
+// ai.js — STUB — Phase 4 implementation
+// =============================================================================
+
+function getAIMove(state) { return null; }
+
 
 /* ===== main.js ===== */
 // =============================================================================
@@ -3096,15 +3775,35 @@ function _launchGame() {
 // -----------------------------------------------------------------------------
 
 function _setupGameScreen() {
-  // renderer and inputHandler are inlined in app.js — call directly.
-  renderGameScreen();
-  initInputHandler({
-    onGameOver: function(scores) {
-      _pendingGameOverScores = scores;
-      showScreen("screen-game-over");
-    },
-    onPassPhone: function(playerName, onReady) {
-      _showPassPhoneOverlay(playerName, onReady);
+  Promise.all([
+    import("./renderer.js"),
+    import("./inputHandler.js")
+  ]).then(function(modules) {
+    var renderer     = modules[0];
+    var inputHandler = modules[1];
+
+    renderer.renderGameScreen();
+
+    inputHandler.initInputHandler({
+      onGameOver: function(scores) {
+        _pendingGameOverScores = scores;
+        showScreen("screen-game-over");
+      },
+      onPassPhone: function(playerName, onReady) {
+        _showPassPhoneOverlay(playerName, onReady);
+      }
+    });
+
+  }).catch(function(err) {
+    var map = document.getElementById("game-map");
+    if (map) {
+      map.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;'
+        + 'justify-content:center;height:100%;gap:16px;'
+        + 'color:#9e8e78;font-size:0.9rem;text-align:center;padding:24px;">'
+        + '<p><strong style="color:#c9a84c">Game board coming soon</strong></p>'
+        + "<p>renderer.js and inputHandler.js not yet fully implemented.</p>"
+        + '<p style="font-size:0.75rem;color:#5c5040">' + err.message + "</p>"
+        + "</div>";
     }
   });
 }
@@ -3199,3 +3898,5 @@ function _boot() {
 }
 
 document.addEventListener("DOMContentLoaded", _boot);
+
+
