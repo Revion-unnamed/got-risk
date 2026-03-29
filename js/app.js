@@ -2871,6 +2871,67 @@ var TERRITORY_COORDS = {
   "yronwood":        { x: 158, y: 398 }
 };
 
+var REGION_COLOURS = {
+  "the-north":        "rgba(100,130,160,0.13)",
+  "the-iron-islands": "rgba( 80,100,130,0.15)",
+  "the-riverlands":   "rgba(140,110, 70,0.13)",
+  "the-vale":         "rgba(160,140,100,0.13)",
+  "the-westerlands":  "rgba(180,150, 20,0.12)",
+  "the-crownlands":   "rgba(160, 60, 60,0.13)",
+  "the-reach":        "rgba( 60,120, 60,0.13)",
+  "the-stormlands":   "rgba(100, 80,150,0.13)",
+  "dorne":            "rgba(180,100, 20,0.13)"
+};
+
+var REGION_LABEL_COLOURS = {
+  "the-north":        "#6482a0",
+  "the-iron-islands": "#506082",
+  "the-riverlands":   "#8c6e46",
+  "the-vale":         "#a08c64",
+  "the-westerlands":  "#b49614",
+  "the-crownlands":   "#a03c3c",
+  "the-reach":        "#3c783c",
+  "the-stormlands":   "#645096",
+  "dorne":            "#b46414"
+};
+
+function _buildRegionBlobs() {
+  var html = "";
+  var regionIds = Object.keys(REGIONS);
+  for (var r = 0; r < regionIds.length; r++) {
+    var regionId   = regionIds[r];
+    var region     = REGIONS[regionId];
+    var fillColour = REGION_COLOURS[regionId] || "rgba(120,120,120,0.10)";
+    var lblColour  = REGION_LABEL_COLOURS[regionId] || "#888";
+    var coords = [];
+    for (var t = 0; t < region.territories.length; t++) {
+      var coord = TERRITORY_COORDS[region.territories[t]];
+      if (coord) coords.push(coord);
+    }
+    if (coords.length === 0) continue;
+    var minX =  999, minY =  999, maxX = -999, maxY = -999;
+    for (var c = 0; c < coords.length; c++) {
+      if (coords[c].x < minX) minX = coords[c].x;
+      if (coords[c].y < minY) minY = coords[c].y;
+      if (coords[c].x > maxX) maxX = coords[c].x;
+      if (coords[c].y > maxY) maxY = coords[c].y;
+    }
+    var PAD = NODE_RADIUS + 8;
+    html += '<rect x="'  + (minX - PAD) + '" y="' + (minY - PAD)
+      + '" width="'  + (maxX - minX + PAD * 2)
+      + '" height="' + (maxY - minY + PAD * 2)
+      + '" rx="14" ry="14"'
+      + ' fill="' + fillColour + '"'
+      + ' stroke="' + lblColour + '" stroke-width="0.8" stroke-opacity="0.4"'
+      + ' pointer-events="none"/>';
+    html += '<text x="' + (minX + (maxX - minX) / 2) + '" y="' + (minY - PAD + 8) + '"'
+      + ' text-anchor="middle" font-size="7" fill="' + lblColour + '"'
+      + ' opacity="0.85" pointer-events="none" font-style="italic">'
+      + region.name + "</text>";
+  }
+  return html;
+}
+
 var SHORT_NAMES = {
   "castle-black":    "C.Black",
   "the-dreadfort":   "Dreadfort",
@@ -2973,6 +3034,7 @@ function renderMap() {
   var territories = getTerritoryDisplayData();
   var svgLines = "";
   var svgNodes = "";
+  var svgRegions = _buildRegionBlobs();
 
   // Draw connection lines first (so circles sit on top).
   var drawn = {};
@@ -3054,7 +3116,7 @@ function renderMap() {
   var svg = '<svg viewBox="0 0 ' + MAP_VIEWBOX_W + ' ' + MAP_VIEWBOX_H + '"'
     + ' xmlns="http://www.w3.org/2000/svg"'
     + ' id="map-svg" style="width:100%;height:100%;display:block;">'
-    + svgLines + svgNodes
+    +svgRegions + svgLines + svgNodes
     + "</svg>";
 
   mapEl.innerHTML = svg;
