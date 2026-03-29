@@ -2724,17 +2724,23 @@ function getCardDisplayData() {
     "valar-morghulis": { label: "Valar Morghulis", emoji: "💀" },
   };
 
+var state = getState();
   const cards = player.cards.map((card, i) => {
     const display = CARD_DISPLAY[card.cardType] ?? { label: card.cardType, emoji: "?" };
+    var ownsTerritory = card.territoryId
+      ? state.territories[card.territoryId]?.owner === player.houseId
+      : false;
     return {
-      index:       i,
-      cardType:    card.cardType,
-      territoryId: card.territoryId,
+      index:         i,
+      cardType:      card.cardType,
+      territoryId:   card.territoryId,
       territoryName: card.territoryId ? TERRITORIES[card.territoryId]?.name ?? card.territoryId : null,
-      emoji:       display.emoji,
-      label:       display.label,
+      emoji:         display.emoji,
+      label:         display.label,
+      ownsTerritory: ownsTerritory,   // true = trading this card gives +2 army bonus
     };
   });
+
 
   return {
     cards,
@@ -3377,11 +3383,18 @@ function _refreshCardPanel() {
     var html = "";
     for (var i = 0; i < cardData.cards.length; i++) {
       var card = cardData.cards[i];
+      var bonusBadge = card.ownsTerritory
+        ? '<span style="font-size:9px;color:#c9a84c;font-weight:700;line-height:1">+2 &#9733;</span>'
+        : "";
       html += '<div class="card-item" data-card-index="' + card.index + '">'
         + '<span class="card-item-emoji">'     + card.emoji + "</span>"
         + '<span class="card-item-type">'      + card.label + "</span>"
         + '<span class="card-item-territory">' + (card.territoryName || "Wild") + "</span>"
+        + bonusBadge
         + "</div>";
+      
+        
+        
     }
     body.innerHTML = html;
   }
