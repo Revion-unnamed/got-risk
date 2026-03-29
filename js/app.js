@@ -3963,9 +3963,13 @@ function _rewireDraw() {
 // -----------------------------------------------------------------------------
 // CARD TRADING
 // -----------------------------------------------------------------------------
-
 function _rewireCardPanel() {
   _wireBtn("btn-close-cards", function() {
+    // Block closing if a trade is mandatory.
+    if (mustTradeCards()) {
+      _showError("You must trade a set before continuing.");
+      return;
+    }
     _sel.cardSelected = [];
     updateCardSelection([]);
     hideCardPanel();
@@ -3975,6 +3979,7 @@ function _rewireCardPanel() {
     _handleTradeCards();
   });
 }
+
 
 function _handleTradeCards() {
   if (_sel.cardSelected.length !== 3) {
