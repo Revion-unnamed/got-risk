@@ -828,8 +828,8 @@ const HOUSES = {
     id: "baratheon",
     name: "House Baratheon",
     sigil: "🦌",
-    color: "#e8c840",         // yellow
-    colorDark: "#b09010",
+    color: "#8b5a2b",         // brown
+    colorDark: "#5d3a1a",
     seatOfPower: "storms-end",
     startingRegion: "the-stormlands",
   },
@@ -1696,12 +1696,13 @@ function drawCard() {
  *                                         Pass null if no match (or match not owned).
  * @returns {number} armies earned (including territory match bonus if applicable)
  */
-function tradeCards(cardIndices, matchTerritoryId) {
+  function tradeCards(cardIndices, matchTerritoryId) {
   if (
     _state.phase !== PHASES.REINFORCE &&
-    _state.phase !== PHASES.DRAW
+    _state.phase !== PHASES.DRAW &&
+    _state.phase !== PHASES.ATTACK
   ) {
-    throw new Error("tradeCards: can only trade during Reinforce or Draw phase.");
+    throw new Error("tradeCards: can only trade during Reinforce, Attack, or Draw phase.");
   }
   if (cardIndices.length !== 3) {
     throw new Error("tradeCards: must trade exactly 3 cards.");
