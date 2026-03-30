@@ -1393,6 +1393,17 @@ function setupPlaceArmies(territoryId, houseId, count) {
   _log(`Setup: ${_playerName(playerIndex)} places ${count} ${_armyWord(count)} in ${_territoryName(territoryId)}.`);
 }
 
+// Places armies on a territory for the neutral faction.
+// Neutral territories have no player owner — they just block and must be conquered.
+function setupPlaceArmiesNeutral(territoryId, count) {
+  _assertPhase(PHASES.SETUP);
+  _assertTerritoryExists(territoryId);
+  var territory   = _state.territories[territoryId];
+  territory.owner  = "neutral";
+  territory.armies = count;
+  _log("Setup: neutral territory " + (TERRITORIES[territoryId]
+    ? TERRITORIES[territoryId].name : territoryId) + " gets " + count + " armies.");
+}
 /**
  * Marks the setup phase as complete and advances to the first player's
  * reinforce phase. Call this once all territories have been assigned.
@@ -2102,20 +2113,21 @@ function startNewGame(config) {
 
     // Deal territory cards and place 2 armies on each.
     // We work with all territory IDs and deal them like cards.
-    const allTerritoryIds = Object.keys(TERRITORIES);
-    const shuffled = _shuffleArray([...allTerritoryIds]);
+  // Deal territories equally — every player gets the same count.
+    // Any remainder territories go to neutral (2 armies, no player owner).
+    var allTerritoryIds = Object.keys(TERRITORIES);
+    var shuffled        = _shuffleArray(allTerritoryIds.slice());
+    var perPlayer       = Math.floor(shuffled.length / playerCount);
 
-    // Deal to players round-robin, tracking leftovers for neutral placement.
-    const dealtTo = {}; // territoryId → playerIndex
-    for (let i = 0; i < shuffled.length; i++) {
-      const playerIndex = i % playerCount;
-      dealtTo[shuffled[i]] = playerIndex;
+    // First (perPlayer * playerCount) territories split equally.
+    for (var t = 0; t < perPlayer * playerCount; t++) {
+      var playerIndex = t % playerCount;
+      setupPlaceArmies(shuffled[t], config.players[playerIndex].houseId, 2);
     }
 
-    // Place 2 armies on each territory for its owner (or neutral).
-    for (const [territoryId, playerIndex] of Object.entries(dealtTo)) {
-      const houseId = config.players[playerIndex].houseId;
-      setupPlaceArmies(territoryId, houseId, 2);
+    // Remaining territories go to neutral.
+    for (var n = perPlayer * playerCount; n < shuffled.length; n++) {
+      setupPlaceArmiesNeutral(shuffled[n], 2);
     }
 
     // Mark setup complete → advances phase to REINFORCE for firstPlayer.
