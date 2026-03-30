@@ -3119,10 +3119,12 @@ function renderMap() {
     +svgRegions + svgLines + svgNodes
     + "</svg>";
 
-  mapEl.innerHTML = svg;
+  // Wrap SVG and badges in a scalable inner div.
+  mapEl.innerHTML = '<div id="map-inner">' + svg + '</div>';
 
-  // Army badges — HTML divs absolutely positioned over the SVG.
-  _renderArmyBadges(mapEl, territories);
+  // Army badges go inside map-inner so they scale with the SVG.
+  var inner = mapEl.querySelector("#map-inner");
+  _renderArmyBadges(inner, territories);
 
   // Tap listeners on the SVG.
   var svgEl = mapEl.querySelector("svg");
@@ -3136,6 +3138,54 @@ function renderMap() {
       }
     });
   }
+
+  // Pinch zoom — applied to map-inner so badges scale with the SVG.
+  _initPinchZoom(mapEl, inner);
+}
+
+function _initPinchZoom(viewport, inner) {
+  var scale     = 1;
+  var originX   = 0;
+  var originY   = 0;
+  var startDist = 0;
+  var startScale= 1;
+  var MIN_SCALE = 1;
+  var MAX_SCALE = 4;
+
+  function _applyTransform() {
+    inner.style.transform = "scale(" + scale + ") translate(" + originX + "px," + originY + "px)";
+  }
+
+  function _dist(t) {
+    var dx = t[0].clientX - t[1].clientX;
+    var dy = t[0].clientY - t[1].clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+  }
+
+  viewport.addEventListener("touchstart", function(e) {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      startDist  = _dist(e.touches);
+      startScale = scale;
+    }
+  }, { passive: false });
+
+  viewport.addEventListener("touchmove", function(e) {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      var newDist   = _dist(e.touches);
+      var newScale  = Math.min(MAX_SCALE, Math.max(MIN_SCALE, startScale * (newDist / startDist)));
+      scale = newScale;
+      _applyTransform();
+    }
+  }, { passive: false });
+
+  viewport.addEventListener("touchend", function(e) {
+    if (e.touches.length < 2) {
+      // Snap back if zoomed out below 1.
+      if (scale < MIN_SCALE) { scale = MIN_SCALE; originX = 0; originY = 0; _applyTransform(); }
+    }
+  });
 }
 
 function _renderArmyBadges(mapEl, territories) {
