@@ -607,10 +607,18 @@ select:focus {
   width: 100%;
   position: relative;
   overflow: hidden;
-  background: #0f1a24;         /* dark sea colour for placeholder map */
-  min-height: 0;               /* flex child must opt into shrinking */
+  background: #0f1a24;
+  min-height: 0;
+  touch-action: none;   /* hand all touch events to JS, prevents browser scroll interference */
 }
 
+#map-inner {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
+}
 /* The SVG renderer injects fills this container */
 .game-map svg {
   width: 100%;
