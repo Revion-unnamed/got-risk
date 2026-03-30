@@ -3320,12 +3320,11 @@ function renderActionPanel() {
   } else if (state.phase === "draw") {
     var canDraw = player.conqueredThisTurn;
     html = '<p class="action-instructions">'
-      + (canDraw ? "Draw a card, then end your turn." : "No conquest — end your turn.")
+      + (canDraw ? "Card drawn. End your turn." : "No conquest this turn.")
       + "</p>"
-      + '<div class="action-btn-row">'
-      + '<button id="btn-draw-card" class="btn btn-secondary"' + (canDraw ? "" : " disabled") + ">Draw Card</button>"
-      + '<button id="btn-end-turn" class="btn btn-primary">End Turn</button>'
-      + "</div>";
+      + '<button id="btn-end-turn" class="btn btn-primary" style="width:100%">End Turn</button>';
+    
+    
 
   } else {
     html = '<p class="action-instructions">Loading...</p>';
@@ -4065,15 +4064,18 @@ function _showManoeuvreCountPrompt(state) {
 // -----------------------------------------------------------------------------
 // DRAW PHASE
 // -----------------------------------------------------------------------------
-
 function _rewireDraw() {
-  _wireBtn("btn-draw-card", function() {
+  var state = getState();
+
+  // Auto-draw if the player conquered at least one territory this turn.
+  // No button tap needed — happens immediately when the draw phase starts.
+  if (state.players[state.currentPlayerIndex].conqueredThisTurn) {
     var result = actionDrawCard();
     if (!result.success) { _showError(result.error); return; }
     if (result.data && result.data.gameOver) { _handleGameOver(); return; }
     renderGameScreen();
-    _rewire();
-  });
+    // Fall through — re-wire the End Turn button after auto-draw.
+  }
 
   _wireBtn("btn-end-turn", function() {
     if (mustTradeCards()) { _showError("Trade cards before ending your turn."); return; }
@@ -4083,6 +4085,7 @@ function _rewireDraw() {
     _doPassPhone();
   });
 }
+
 
 
 // -----------------------------------------------------------------------------
