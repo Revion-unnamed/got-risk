@@ -1783,6 +1783,7 @@ function drawCard() {
 
   // Territory match bonus.
   let matchBonus = 0;
+  console.log("matchTerritoryId:", matchTerritoryId);
   if (
     matchTerritoryId &&
     _state.territories[matchTerritoryId]?.owner === player.houseId
@@ -2632,16 +2633,21 @@ function actionTradeCards(cardIndices, session) {
     return { success: false, error: "Those 3 cards do not form a valid set." };
   }
 
-  const matchTerritory = findCardSetMatchTerritory(cardIndices);
+const matchTerritory = findCardSetMatchTerritory(cardIndices);
+  const matchBonus     = matchTerritory ? 2 : 0;
 
   try {
     const armiesEarned = tradeCards(cardIndices, matchTerritory);
-    session.armiesRemaining += armiesEarned;
+    // armiesEarned includes the +2 match bonus — subtract it back out before
+    // adding to the placeable pool. The bonus armies go directly onto the
+    // matching territory inside tradeCards(), not into the pool.
+    session.armiesRemaining += (armiesEarned - matchBonus);
     return { success: true, armiesEarned, matchTerritory };
   } catch (err) {
     return { success: false, error: err.message };
   }
-}
+  
+ 
 
 /**
  * Ends the current player's turn and advances to the next.
