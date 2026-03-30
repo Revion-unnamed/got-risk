@@ -1755,7 +1755,7 @@ function drawCard() {
  *                                         Pass null if no match (or match not owned).
  * @returns {number} armies earned (including territory match bonus if applicable)
  */
-  function tradeCards(cardIndices, matchTerritoryId) {
+function tradeCards(cardIndices, matchTerritoryId) {
   if (
     _state.phase !== PHASES.REINFORCE &&
     _state.phase !== PHASES.DRAW &&
@@ -1783,7 +1783,6 @@ function drawCard() {
 
   // Territory match bonus.
   let matchBonus = 0;
-  console.log("matchTerritoryId:", matchTerritoryId);
   if (
     matchTerritoryId &&
     _state.territories[matchTerritoryId]?.owner === player.houseId
@@ -2340,8 +2339,18 @@ function findAllValidCardSets(cards) {
  * @returns {number}
  */
 function previewTradeValue() {
-  const player = getCurrentPlayer();
-  return calcCardTradeValue(player.cardSetsTraded);
+  // Show the best possible trade value from the current hand.
+  // If the player has no valid sets yet, show the minimum (4).
+  var player = getCurrentPlayer();
+  var validSets = findAllValidCardSets(player.cards);
+  if (validSets.length === 0) return 4;
+  var best = 0;
+  for (var i = 0; i < validSets.length; i++) {
+    var types = validSets[i].map(function(idx) { return player.cards[idx].cardType; });
+    var val = calcCardSetValue(types);
+    if (val > best) best = val;
+  }
+  return best;
 }
 
 /**
@@ -2647,7 +2656,6 @@ const matchTerritory = findCardSetMatchTerritory(cardIndices);
     return { success: false, error: err.message };
   }
 }
- 
 
 /**
  * Ends the current player's turn and advances to the next.
