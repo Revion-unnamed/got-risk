@@ -870,8 +870,15 @@ const CARD_TYPES = {
 
 // Trade-in values: index 0 = first set traded, index 1 = second, etc.
 // After the 6th set (index 5 = 15 armies), each subsequent set adds 5 more.
-const CARD_TRADE_VALUES = [4, 6, 8, 10, 12, 15];
-const CARD_TRADE_INCREMENT_AFTER_SIX = 5;
+// Fixed trade values by set type — no escalation.
+// 3 of a kind: footsoldier=4, knight=6, siege=6. 1 of each=7.
+// Wilds substitute for any type.
+var CARD_TRADE_VALUES = {
+  footsoldier: 4,
+  knight:      6,
+  siege:       6,
+  mixed:       7
+};
 
 // Matching territory bonus: if any card in a traded set matches a territory
 // the player owns, they place this many extra armies on that territory.
@@ -943,14 +950,55 @@ function calcBaseReinforcements(ownedTerritoryIds) {
  * @param {number} setsTraded — zero-indexed count of sets traded so far this game
  * @returns {number} armies earned for this trade
  */
+ // Returns armies earned for a set of 3 cards.
+// Pass the 3 cardType strings (after wild substitution).
+// Call calcCardSetValue(types) instead for the new fixed system.
 function calcCardTradeValue(setsTraded) {
-  if (setsTraded < CARD_TRADE_VALUES.length) {
-    return CARD_TRADE_VALUES[setsTraded];
-  }
-  // After 6th set: 15 + (n - 5) * 5 where n = setsTraded (0-indexed)
-  const extraSets = setsTraded - (CARD_TRADE_VALUES.length - 1);
-  return 15 + extraSets * CARD_TRADE_INCREMENT_AFTER_SIX;
+  // Legacy signature kept so nothing breaks — returns minimum value.
+  return 4;
 }
+
+// NEW: returns the correct fixed value for a specific set of 3 card types.
+// types = array of 3 strings e.g. ["footsoldier","footsoldier","footsoldier"]
+// Wilds are treated as wildcards — they take on whatever type gives most value.
+function calcCardSetValue(types) {
+  var nonWild = types.filter(function(t) { return t !== "wild"; });
+  var wilds   = types.length - nonWild.length;
+
+  // With 2 or 3 wilds we can make any 3-of-a-kind — best is siege/knight = 6.
+  if (wilds >= 2) return 6;
+
+  // With 1 wild and 2 non-wilds:
+  // If both non-wilds are the same type, wild matches = 3 of a kind.
+  // If both are different types, wild can complete either a 3-of-a-kind or mixed.
+  // Best outcome: if we can form 3-of-a-kind of siege or knight, do it (=6).
+  // Otherwise mixed = 7.
+  if (wilds === 1) {
+    if (nonWild[0] === nonWild[1]) {
+      return CARD_TRADE_VALUES[nonWild[0]] || 4;
+    }
+    // Two different non-wilds + 1 wild = 1 of each = 7.
+    return 7;
+  }
+
+  // No wilds.
+  var unique = {};
+  for (var i = 0; i < nonWild.length; i++) unique[nonWild[i]] = true;
+  var uniqueCount = Object.keys(unique).length;
+
+  if (uniqueCount === 1) {
+    // 3 of a kind.
+    return CARD_TRADE_VALUES[nonWild[0]] || 4;
+  }
+  if (uniqueCount === 3) {
+    // 1 of each.
+    return 7;
+  }
+  // Should not reach here for a valid set — return minimum.
+  return 4;
+}
+
+
 
 /**
  * Checks if three card types form a valid trade-in set.
@@ -1717,15 +1765,10 @@ function drawCard() {
     }
   }
 
-  // Calculate armies earned.
-  // Trade values are inlined here to avoid a circular import with boardData.js.
-  // gameLogic.js can use calcCardTradeValue() from boardData for display purposes.
-  const TRADE_VALUES = [4, 6, 8, 10, 12, 15];
-  const INCREMENT    = 5;
-  const setsTraded   = player.cardSetsTraded;
-  let armiesEarned   = setsTraded < TRADE_VALUES.length
-    ? TRADE_VALUES[setsTraded]
-    : 15 + (setsTraded - (TRADE_VALUES.length - 1)) * INCREMENT;
+ // Calculate armies earned using fixed values by set type.
+  var tradedCards = cardIndices.map(function(i) { return player.cards[i]; });
+  var tradedTypes = tradedCards.map(function(c) { return c.cardType; });
+  var armiesEarned = calcCardSetValue(tradedTypes);
 
   // Territory match bonus.
   let matchBonus = 0;
@@ -1744,7 +1787,6 @@ function drawCard() {
   const traded = sorted.map((i) => player.cards.splice(i, 1)[0]);
   _state.discardPile.push(...traded);
 
-  player.cardSetsTraded++;
 
   _log(
     `${_playerName(_state.currentPlayerIndex)} trades a card set for ${armiesEarned} ${_armyWord(armiesEarned)}.`
