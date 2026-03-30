@@ -2646,7 +2646,7 @@ const matchTerritory = findCardSetMatchTerritory(cardIndices);
   } catch (err) {
     return { success: false, error: err.message };
   }
-  
+}
  
 
 /**
