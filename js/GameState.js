@@ -1,3 +1,4 @@
+/* ===== gameState.js ===== */
 // =============================================================================
 // gameState.js
 // The single source of truth for all live game data.
@@ -16,12 +17,6 @@
 //   3. Update getState() if you need to expose derived data.
 // =============================================================================
 
-import {
-  TERRITORIES,
-  HOUSES,
-  buildCardDeck,
-  shuffle,
-} from "./boardData.js";
 
 
 // -----------------------------------------------------------------------------
@@ -29,7 +24,7 @@ import {
 // Used to validate phase transitions and drive UI rendering.
 // -----------------------------------------------------------------------------
 
-export const PHASES = {
+const PHASES = {
   SETUP:      "setup",       // Initial army placement
   REINFORCE:  "reinforce",   // Player places earned armies
   ATTACK:     "attack",      // Player attacks (optional)
@@ -37,7 +32,7 @@ export const PHASES = {
   DRAW:       "draw",        // Draw a territory card if earned
 };
 
-export const GAME_MODES = {
+const GAME_MODES = {
   SKIRMISH:    "skirmish",
   DOMINATION:  "domination",   // Phase 2 — stubbed
   WORLDATWAR:  "worldatwar",   // Phase 3 — stubbed
@@ -207,7 +202,7 @@ function _createInitialState(config) {
  * @param {Array}    config.players   — [{ houseId, name, isAI? }, ...]
  *                                       2–5 players for Skirmish/Domination
  */
-export function initGame(config) {
+function initGame(config) {
   if (!config.players || config.players.length < 2 || config.players.length > 7) {
     throw new Error("initGame: need between 2 and 7 players.");
   }
@@ -235,7 +230,7 @@ export function initGame(config) {
  * For performance-sensitive reads (e.g. inside tight loops in AI),
  * use the specific getter functions below instead.
  */
-export function getState() {
+function getState() {
   if (!_state) throw new Error("getState: game not initialised. Call initGame() first.");
   return _deepClone(_state);
 }
@@ -243,7 +238,7 @@ export function getState() {
 /**
  * Returns the player object for the current turn (deep clone).
  */
-export function getCurrentPlayer() {
+function getCurrentPlayer() {
   return _deepClone(_state.players[_state.currentPlayerIndex]);
 }
 
@@ -253,7 +248,7 @@ export function getCurrentPlayer() {
  *
  * @param {string} territoryId
  */
-export function getTerritoryState(territoryId) {
+function getTerritoryState(territoryId) {
   if (!_state.territories[territoryId]) {
     throw new Error(`getTerritoryState: unknown territory "${territoryId}".`);
   }
@@ -266,7 +261,7 @@ export function getTerritoryState(territoryId) {
  * @param {string} houseId
  * @returns {string[]}
  */
-export function getTerritoriesOwnedBy(houseId) {
+function getTerritoriesOwnedBy(houseId) {
   return Object.entries(_state.territories)
     .filter(([, t]) => t.owner === houseId)
     .map(([id]) => id);
@@ -278,7 +273,7 @@ export function getTerritoriesOwnedBy(houseId) {
  * @param {string} houseId
  * @returns {number}
  */
-export function getPlayerIndexByHouse(houseId) {
+function getPlayerIndexByHouse(houseId) {
   return _state.players.findIndex((p) => p.houseId === houseId);
 }
 
@@ -294,7 +289,7 @@ export function getPlayerIndexByHouse(houseId) {
  *
  * @param {number[]} armyCounts — one count per player, matching players array order
  */
-export function initSetupArmies(armyCounts) {
+function initSetupArmies(armyCounts) {
   _assertPhase(PHASES.SETUP);
   if (armyCounts.length !== _state.players.length) {
     throw new Error("initSetupArmies: armyCounts length must match player count.");
@@ -314,7 +309,7 @@ export function initSetupArmies(armyCounts) {
  * @param {string} houseId      — the player placing armies
  * @param {number} count        — number of armies to place (usually 2)
  */
-export function setupPlaceArmies(territoryId, houseId, count) {
+function setupPlaceArmies(territoryId, houseId, count) {
   _assertPhase(PHASES.SETUP);
   _assertTerritoryExists(territoryId);
 
@@ -332,11 +327,22 @@ export function setupPlaceArmies(territoryId, houseId, count) {
   _log(`Setup: ${_playerName(playerIndex)} places ${count} ${_armyWord(count)} in ${_territoryName(territoryId)}.`);
 }
 
+// Places armies on a territory for the neutral faction.
+// Neutral territories have no player owner — they just block and must be conquered.
+function setupPlaceArmiesNeutral(territoryId, count) {
+  _assertPhase(PHASES.SETUP);
+  _assertTerritoryExists(territoryId);
+  var territory   = _state.territories[territoryId];
+  territory.owner  = "neutral";
+  territory.armies = count;
+  _log("Setup: neutral territory " + (TERRITORIES[territoryId]
+    ? TERRITORIES[territoryId].name : territoryId) + " gets " + count + " armies.");
+}
 /**
  * Marks the setup phase as complete and advances to the first player's
  * reinforce phase. Call this once all territories have been assigned.
  */
-export function completeSetup() {
+function completeSetup() {
   _assertPhase(PHASES.SETUP);
   _state.setupComplete = true;
   _state.phase = PHASES.REINFORCE;
@@ -356,7 +362,7 @@ export function completeSetup() {
  * @param {string} territoryId
  * @param {number} count
  */
-export function placeReinforcements(territoryId, count) {
+function placeReinforcements(territoryId, count) {
   _assertPhase(PHASES.REINFORCE);
   _assertTerritoryExists(territoryId);
 
@@ -377,7 +383,7 @@ export function placeReinforcements(territoryId, count) {
 /**
  * Ends the reinforce phase and moves to the attack phase.
  */
-export function endReinforcePhase() {
+function endReinforcePhase() {
   _assertPhase(PHASES.REINFORCE);
   _state.phase = PHASES.ATTACK;
   _log(`${_playerName(_state.currentPlayerIndex)} begins the Attack phase.`);
@@ -397,7 +403,7 @@ export function endReinforcePhase() {
  * @param {string} toId         — defending territory id
  * @param {number} attackerDice — 1, 2, or 3
  */
-export function beginAttack(fromId, toId, attackerDice) {
+function beginAttack(fromId, toId, attackerDice) {
   _assertPhase(PHASES.ATTACK);
   _assertTerritoryExists(fromId);
   _assertTerritoryExists(toId);
@@ -455,7 +461,7 @@ export function beginAttack(fromId, toId, attackerDice) {
  * @param {number[]} attackerRolls — e.g. [6, 4, 2]
  * @param {number[]} defenderRolls — e.g. [5, 3]
  */
-export function resolveAttack(attackerRolls, defenderRolls) {
+function resolveAttack(attackerRolls, defenderRolls) {
   if (!_state.activeAttack || _state.activeAttack.resolved) {
     throw new Error("resolveAttack: no active unresolved attack.");
   }
@@ -511,7 +517,7 @@ export function resolveAttack(attackerRolls, defenderRolls) {
  *
  * @param {number} count — armies to move in (min: attackerDice rolled; max: fromArmies - 1)
  */
-export function occupyConqueredTerritory(count) {
+function occupyConqueredTerritory(count) {
   const attack = _state.activeAttack;
   if (!attack || !attack.resolved || !attack.conquered) {
     throw new Error("occupyConqueredTerritory: no conquered territory awaiting occupation.");
@@ -550,7 +556,7 @@ export function occupyConqueredTerritory(count) {
  * Cancels (retreats from) the current attack without resolving it.
  * Only valid before resolveAttack() has been called.
  */
-export function cancelAttack() {
+function cancelAttack() {
   if (!_state.activeAttack || _state.activeAttack.resolved) {
     throw new Error("cancelAttack: no active unresolved attack to cancel.");
   }
@@ -561,7 +567,7 @@ export function cancelAttack() {
 /**
  * Ends the attack phase and moves to the manoeuvre phase.
  */
-export function endAttackPhase() {
+function endAttackPhase() {
   _assertPhase(PHASES.ATTACK);
   if (_state.activeAttack && !_state.activeAttack.resolved) {
     throw new Error("endAttackPhase: resolve or cancel the active attack first.");
@@ -584,7 +590,7 @@ export function endAttackPhase() {
  * @param {string} toId
  * @param {number} count — armies to move (must leave at least 1 behind)
  */
-export function manoeuvre(fromId, toId, count) {
+function manoeuvre(fromId, toId, count) {
   _assertPhase(PHASES.MANOEUVRE);
   _assertTerritoryExists(fromId);
   _assertTerritoryExists(toId);
@@ -603,8 +609,11 @@ export function manoeuvre(fromId, toId, count) {
   if (to.owner !== currentHouse) {
     throw new Error(`manoeuvre: ${toId} is not owned by the current player.`);
   }
-  if (!TERRITORIES[fromId].adjacentTo.includes(toId)) {
-    throw new Error(`manoeuvre: ${fromId} is not adjacent to ${toId}.`);
+  // Connectivity check: toId must be reachable through owned territories.
+  // We use getValidManoeuvreTargets which does a BFS through owned lands.
+  var reachable = getValidManoeuvreTargets(fromId);
+  if (reachable.indexOf(toId) < 0) {
+    throw new Error("manoeuvre: " + toId + " is not reachable through owned territories from " + fromId + ".");
   }
   if (count < 1 || count >= from.armies) {
     throw new Error(`manoeuvre: must move between 1 and ${from.armies - 1} armies.`);
@@ -620,7 +629,7 @@ export function manoeuvre(fromId, toId, count) {
 /**
  * Ends the manoeuvre phase and moves to the draw phase.
  */
-export function endManoeuvrePhase() {
+function endManoeuvrePhase() {
   _assertPhase(PHASES.MANOEUVRE);
   _state.phase = PHASES.DRAW;
   _log(`${_playerName(_state.currentPlayerIndex)} begins the Draw phase.`);
@@ -636,7 +645,7 @@ export function endManoeuvrePhase() {
  * territory this turn. Handles the Valar Morghulis card trigger.
  * If the player has 6+ cards after drawing, they MUST trade before proceeding.
  */
-export function drawCard() {
+function drawCard() {
   _assertPhase(PHASES.DRAW);
 
   const player = _state.players[_state.currentPlayerIndex];
@@ -683,12 +692,13 @@ export function drawCard() {
  *                                         Pass null if no match (or match not owned).
  * @returns {number} armies earned (including territory match bonus if applicable)
  */
-export function tradeCards(cardIndices, matchTerritoryId) {
+function tradeCards(cardIndices, matchTerritoryId) {
   if (
     _state.phase !== PHASES.REINFORCE &&
-    _state.phase !== PHASES.DRAW
+    _state.phase !== PHASES.DRAW &&
+    _state.phase !== PHASES.ATTACK
   ) {
-    throw new Error("tradeCards: can only trade during Reinforce or Draw phase.");
+    throw new Error("tradeCards: can only trade during Reinforce, Attack, or Draw phase.");
   }
   if (cardIndices.length !== 3) {
     throw new Error("tradeCards: must trade exactly 3 cards.");
@@ -703,15 +713,10 @@ export function tradeCards(cardIndices, matchTerritoryId) {
     }
   }
 
-  // Calculate armies earned.
-  // Trade values are inlined here to avoid a circular import with boardData.js.
-  // gameLogic.js can use calcCardTradeValue() from boardData for display purposes.
-  const TRADE_VALUES = [4, 6, 8, 10, 12, 15];
-  const INCREMENT    = 5;
-  const setsTraded   = player.cardSetsTraded;
-  let armiesEarned   = setsTraded < TRADE_VALUES.length
-    ? TRADE_VALUES[setsTraded]
-    : 15 + (setsTraded - (TRADE_VALUES.length - 1)) * INCREMENT;
+ // Calculate armies earned using fixed values by set type.
+  var tradedCards = cardIndices.map(function(i) { return player.cards[i]; });
+  var tradedTypes = tradedCards.map(function(c) { return c.cardType; });
+  var armiesEarned = calcCardSetValue(tradedTypes);
 
   // Territory match bonus.
   let matchBonus = 0;
@@ -730,7 +735,6 @@ export function tradeCards(cardIndices, matchTerritoryId) {
   const traded = sorted.map((i) => player.cards.splice(i, 1)[0]);
   _state.discardPile.push(...traded);
 
-  player.cardSetsTraded++;
 
   _log(
     `${_playerName(_state.currentPlayerIndex)} trades a card set for ${armiesEarned} ${_armyWord(armiesEarned)}.`
@@ -742,7 +746,7 @@ export function tradeCards(cardIndices, matchTerritoryId) {
 /**
  * Ends the draw phase and advances to the next player's turn.
  */
-export function endTurn() {
+function endTurn() {
   _assertPhase(PHASES.DRAW);
 
   if (_state.gameOver) return;
@@ -780,7 +784,7 @@ export function endTurn() {
  * @returns {Array} [{ houseId, name, score, territories, castles, ports }, ...]
  *                  sorted by score descending.
  */
-export function calcSkirmishScores() {
+function calcSkirmishScores() {
   const scores = _state.players.map((player) => {
     let territories = 0, castles = 0, ports = 0;
 
@@ -816,7 +820,7 @@ const LOG_MAX_ENTRIES = 50;
  * Returns the game log as an array of strings, newest first.
  * The renderer shows the first N entries.
  */
-export function getLog() {
+function getLog() {
   return [..._state.log];
 }
 
@@ -960,3 +964,5 @@ function _armyWord(count) {
 function _diceWord(count) {
   return count === 1 ? "die" : "dice";
 }
+
+
