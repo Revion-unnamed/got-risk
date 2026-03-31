@@ -1,11 +1,10 @@
+/* ===== main.js ===== */
 // =============================================================================
 // main.js
 // Application entry point and screen router.
 // Written without async/await for maximum mobile browser compatibility.
 // =============================================================================
 
-import { startNewGame }       from "./gameLogic.js";
-import { HOUSES, GAME_MODES } from "./boardData.js";
 
 
 // -----------------------------------------------------------------------------
@@ -40,7 +39,7 @@ var _pendingConfig = {
 // SCREEN ROUTER
 // -----------------------------------------------------------------------------
 
-export function showScreen(screenId) {
+function showScreen(screenId) {
   SCREENS.forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.style.display = "none";
@@ -55,7 +54,7 @@ export function showScreen(screenId) {
   _onScreenEnter(screenId);
 }
 
-export function getCurrentScreen() {
+function getCurrentScreen() {
   return _currentScreen;
 }
 
@@ -292,16 +291,10 @@ function _launchGame() {
 // -----------------------------------------------------------------------------
 
 function _setupGameScreen() {
-  Promise.all([
-    import("./renderer.js"),
-    import("./inputHandler.js")
-  ]).then(function(modules) {
-    var renderer     = modules[0];
-    var inputHandler = modules[1];
-
-    renderer.renderGameScreen();
-
-    inputHandler.initInputHandler({
+  // All modules are bundled in app.js — call globals directly.
+  try {
+    renderGameScreen();
+    initInputHandler({
       onGameOver: function(scores) {
         _pendingGameOverScores = scores;
         showScreen("screen-game-over");
@@ -310,19 +303,16 @@ function _setupGameScreen() {
         _showPassPhoneOverlay(playerName, onReady);
       }
     });
-
-  }).catch(function(err) {
+  } catch(err) {
     var map = document.getElementById("game-map");
     if (map) {
-      map.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;'
-        + 'justify-content:center;height:100%;gap:16px;'
-        + 'color:#9e8e78;font-size:0.9rem;text-align:center;padding:24px;">'
-        + '<p><strong style="color:#c9a84c">Game board coming soon</strong></p>'
-        + "<p>renderer.js and inputHandler.js not yet fully implemented.</p>"
-        + '<p style="font-size:0.75rem;color:#5c5040">' + err.message + "</p>"
-        + "</div>";
+      map.innerHTML = '<div style="padding:24px;color:#9e8e78;text-align:center">'
+        + '<p style="color:#c9a84c;font-weight:700">Render error</p>'
+        + '<p style="font-size:0.8rem;margin-top:8px">' + err.message + '</p>'
+        + '</div>';
     }
-  });
+    console.error("_setupGameScreen error:", err);
+  }
 }
 
 
@@ -415,3 +405,5 @@ function _boot() {
 }
 
 document.addEventListener("DOMContentLoaded", _boot);
+
+
