@@ -1,3 +1,4 @@
+/* ===== boardData.js ===== */
 // =============================================================================
 // boardData.js
 // Static game data for RISK: Game of Thrones — Westeros map
@@ -18,110 +19,76 @@
 // Bonus values are from the official board.
 // -----------------------------------------------------------------------------
 
-export const REGIONS = {
+var REGIONS = {
   "the-north": {
     name: "The North",
-    bonus: 6,
-    territories: [
-      "castle-black",
-      "karhold",
-      "the-dreadfort",
-      "winterfell",
-      "deepwood-motte",
-      "bear-island",
-      "torrhen-square",
-      "white-harbour",
-      "moat-cailin",
-    ],
-  },
-
-  "the-iron-islands": {
-    name: "The Iron Islands",
-    bonus: 2,
-    territories: [
-      "pyke",
-      "great-wyk",
-      "old-wyk",
-    ],
-  },
-
-  "the-riverlands": {
-    name: "The Riverlands",
-    bonus: 4,
-    territories: [
-      "the-twins",
-      "riverrun",
-      "seagard",
-      "harrenhal",
-      "maidenpool",
-    ],
-  },
-
-  "the-vale": {
-    name: "The Vale",
-    bonus: 3,
-    territories: [
-      "the-eyrie",
-      "gulltown",
-      "hearts-home",
-    ],
-  },
-
-  "the-westerlands": {
-    name: "The Westerlands",
-    bonus: 4,
-    territories: [
-      "casterly-rock",
-      "lannisport",
-      "cleganes-keep",
-      "oxcross",
-      "golden-tooth",
-    ],
-  },
-
-  "the-crownlands": {
-    name: "The Crownlands",
-    bonus: 3,
-    territories: [
-      "kings-landing",
-      "dragonstone",
-      "crackclaw-point",
-    ],
-  },
-
-  "the-reach": {
-    name: "The Reach",
     bonus: 5,
     territories: [
-      "highgarden",
-      "oldtown",
-      "brightwater-keep",
-      "ashford",
-      "horn-hill",
-      "three-towers",
-    ],
+      "castle-black", "the-gift", "skagos", "karhold",
+      "the-dreadfort", "wolfswood", "winterfell", "barrowlands",
+      "stony-shore", "bear-island", "widows-watch",
+      "white-harbour", "moat-cailin"
+    ]
   },
-
+  "the-iron-islands": {
+    name: "The Iron Islands",
+    bonus: 1,
+    territories: [ "pyke", "great-wyk", "old-wyk", "harlaw" ]
+  },
+  "the-riverlands": {
+    name: "The Riverlands",
+    bonus: 2,
+    territories: [
+      "cape-kraken", "seagard", "the-twins", "the-neck",
+      "riverrun", "harrenhal", "maidenpool"
+    ]
+  },
+  "the-vale": {
+    name: "The Vale of Arryn",
+    bonus: 1,
+    territories: [ "hearts-home", "the-fingers", "the-eyrie", "gulltown" ]
+  },
+  "the-westerlands": {
+    name: "The Westerlands",
+    bonus: 2,
+    territories: [
+      "golden-tooth", "oxcross", "casterly-rock",
+      "lannisport", "cleganes-keep", "silverhill"
+    ]
+  },
+  "the-crownlands": {
+    name: "The Crownlands",
+    bonus: 2,
+    territories: [
+      "crackclaw-point", "kings-landing",
+      "dragonstone", "blackwater-rush"
+    ]
+  },
+  "the-reach": {
+    name: "The Reach",
+    bonus: 4,
+    territories: [
+      "stoney-sept", "ashford", "highgarden", "oldtown",
+      "three-towers", "horn-hill", "brightwater-keep",
+      "the-mander", "seabed-marches"
+    ]
+  },
   "the-stormlands": {
     name: "The Stormlands",
-    bonus: 3,
+    bonus: 1,
     territories: [
-      "storms-end",
-      "bronzegate",
-      "felwood",
-    ],
+      "kingswood", "bronzegate", "storms-end",
+      "rainwood", "lornish-marches", "tarth"
+    ]
   },
-
   "dorne": {
     name: "Dorne",
-    bonus: 3,
+    bonus: 1,
     territories: [
-      "sunspear",
-      "the-tor",
-      "planky-town",
-      "yronwood",
-    ],
-  },
+      "red-mountains", "yronwood", "the-tor",
+      "sandstone", "greenblood", "planky-town", "sunspear"
+    ]
+  }
 };
 
 
@@ -144,655 +111,145 @@ export const REGIONS = {
 //     We model this as direct adjacency here for simplicity.
 // -----------------------------------------------------------------------------
 
-export const TERRITORIES = {
+var TERRITORIES = {
 
-  // ── THE NORTH ──────────────────────────────────────────────────────────────
+  // ── THE NORTH ─────────────────────────────────────────────────
+  "castle-black":  { id:"castle-black",  name:"Castle Black",   region:"the-north",        hasCastle:true,  hasPort:false, cardType:"footsoldier",
+    adjacentTo:["the-gift","karhold","wolfswood"] },
+  "the-gift":      { id:"the-gift",      name:"The Gift",       region:"the-north",        hasCastle:false, hasPort:false, cardType:"knight",
+    adjacentTo:["castle-black","skagos","karhold","the-dreadfort","winterfell","wolfswood"] },
+  "skagos":        { id:"skagos",        name:"Skagos",         region:"the-north",        hasCastle:false, hasPort:true,  cardType:"siege",
+    adjacentTo:["the-gift","karhold"] },
+  "karhold":       { id:"karhold",       name:"Karhold",        region:"the-north",        hasCastle:false, hasPort:false, cardType:"knight",
+    adjacentTo:["castle-black","the-gift","skagos","the-dreadfort","widows-watch"] },
+  "the-dreadfort": { id:"the-dreadfort", name:"The Dreadfort",  region:"the-north",        hasCastle:true,  hasPort:false, cardType:"siege",
+    adjacentTo:["the-gift","karhold","widows-watch","white-harbour","winterfell"] },
+  "wolfswood":     { id:"wolfswood",     name:"Wolfswood",      region:"the-north",        hasCastle:false, hasPort:false, cardType:"footsoldier",
+    adjacentTo:["castle-black","the-gift","winterfell","barrowlands","stony-shore","bear-island"] },
+  "winterfell":    { id:"winterfell",    name:"Winterfell",     region:"the-north",        hasCastle:true,  hasPort:false, cardType:"footsoldier",
+    adjacentTo:["the-gift","the-dreadfort","white-harbour","wolfswood","barrowlands","moat-cailin"] },
+  "barrowlands":   { id:"barrowlands",   name:"Barrowlands",    region:"the-north",        hasCastle:false, hasPort:false, cardType:"knight",
+    adjacentTo:["wolfswood","winterfell","stony-shore","moat-cailin"] },
+  "stony-shore":   { id:"stony-shore",   name:"Stony Shore",    region:"the-north",        hasCastle:false, hasPort:true,  cardType:"siege",
+    adjacentTo:["wolfswood","barrowlands","bear-island","moat-cailin","cape-kraken"] },
+  "bear-island":   { id:"bear-island",   name:"Bear Island",    region:"the-north",        hasCastle:false, hasPort:true,  cardType:"footsoldier",
+    adjacentTo:["wolfswood","stony-shore","pyke"] },
+  "widows-watch":  { id:"widows-watch",  name:"Widow's Watch",  region:"the-north",        hasCastle:false, hasPort:true,  cardType:"knight",
+    adjacentTo:["karhold","the-dreadfort","white-harbour","maidenpool"] },
+  "white-harbour": { id:"white-harbour", name:"White Harbour",  region:"the-north",        hasCastle:false, hasPort:true,  cardType:"siege",
+    adjacentTo:["the-dreadfort","widows-watch","winterfell","moat-cailin","the-neck"] },
+  "moat-cailin":   { id:"moat-cailin",   name:"Moat Cailin",    region:"the-north",        hasCastle:false, hasPort:false, cardType:"footsoldier",
+    adjacentTo:["barrowlands","winterfell","stony-shore","white-harbour","the-neck","seagard"] },
 
-  "castle-black": {
-    id: "castle-black",
-    name: "Castle Black",
-    region: "the-north",
-    hasCastle: true,
-    hasPort: false,
-    cardType: "footsoldier",
-    adjacentTo: ["karhold", "the-dreadfort", "winterfell"],
-    // Castle Black sits at the Wall; no territory north of it on this map.
-    // [VERIFY] exact southern adjacencies on physical board.
-  },
+  // ── THE IRON ISLANDS ──────────────────────────────────────────
+  "pyke":          { id:"pyke",          name:"Pyke",           region:"the-iron-islands", hasCastle:true,  hasPort:true,  cardType:"footsoldier",
+    adjacentTo:["great-wyk","old-wyk","harlaw","bear-island","cape-kraken","lannisport"] },
+  "great-wyk":     { id:"great-wyk",     name:"Great Wyk",      region:"the-iron-islands", hasCastle:false, hasPort:true,  cardType:"knight",
+    adjacentTo:["pyke","old-wyk"] },
+  "old-wyk":       { id:"old-wyk",       name:"Old Wyk",        region:"the-iron-islands", hasCastle:false, hasPort:true,  cardType:"siege",
+    adjacentTo:["pyke","great-wyk"] },
+  "harlaw":        { id:"harlaw",        name:"Harlaw",         region:"the-iron-islands", hasCastle:false, hasPort:true,  cardType:"knight",
+    adjacentTo:["pyke","seagard"] },
 
-  "karhold": {
-    id: "karhold",
-    name: "Karhold",
-    region: "the-north",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "knight",
-    adjacentTo: ["castle-black", "the-dreadfort", "white-harbour"],
-  },
+  // ── THE RIVERLANDS ────────────────────────────────────────────
+  "cape-kraken":   { id:"cape-kraken",   name:"Cape Kraken",    region:"the-riverlands",   hasCastle:false, hasPort:true,  cardType:"siege",
+    adjacentTo:["stony-shore","pyke","seagard","the-neck"] },
+  "seagard":       { id:"seagard",       name:"Seagard",        region:"the-riverlands",   hasCastle:false, hasPort:true,  cardType:"footsoldier",
+    adjacentTo:["cape-kraken","the-neck","moat-cailin","the-twins","harlaw","riverrun"] },
+  "the-twins":     { id:"the-twins",     name:"The Twins",      region:"the-riverlands",   hasCastle:true,  hasPort:false, cardType:"knight",
+    adjacentTo:["seagard","the-neck","harrenhal","riverrun","maidenpool"] },
+  "the-neck":      { id:"the-neck",      name:"The Neck",       region:"the-riverlands",   hasCastle:false, hasPort:false, cardType:"siege",
+    adjacentTo:["moat-cailin","white-harbour","seagard","cape-kraken","the-twins"] },
+  "riverrun":      { id:"riverrun",      name:"Riverrun",       region:"the-riverlands",   hasCastle:true,  hasPort:false, cardType:"footsoldier",
+    adjacentTo:["seagard","the-twins","harrenhal","golden-tooth","oxcross","stoney-sept"] },
+  "harrenhal":     { id:"harrenhal",     name:"Harrenhal",      region:"the-riverlands",   hasCastle:true,  hasPort:false, cardType:"knight",
+    adjacentTo:["the-twins","riverrun","maidenpool","crackclaw-point","kings-landing","blackwater-rush","stoney-sept"] },
+  "maidenpool":    { id:"maidenpool",    name:"Maidenpool",     region:"the-riverlands",   hasCastle:false, hasPort:true,  cardType:"siege",
+    adjacentTo:["widows-watch","the-twins","harrenhal","crackclaw-point","gulltown"] },
 
-  "the-dreadfort": {
-    id: "the-dreadfort",
-    name: "The Dreadfort",
-    region: "the-north",
-    hasCastle: true,
-    hasPort: false,
-    cardType: "siege",
-    adjacentTo: ["castle-black", "karhold", "winterfell", "white-harbour"],
-  },
+  // ── THE VALE ──────────────────────────────────────────────────
+  "hearts-home":   { id:"hearts-home",  name:"Heart's Home",   region:"the-vale",         hasCastle:false, hasPort:false, cardType:"footsoldier",
+    adjacentTo:["the-fingers","the-eyrie","crackclaw-point"] },
+  "the-fingers":   { id:"the-fingers",  name:"The Fingers",    region:"the-vale",         hasCastle:false, hasPort:true,  cardType:"knight",
+    adjacentTo:["hearts-home","the-eyrie","gulltown"] },
+  "the-eyrie":     { id:"the-eyrie",    name:"The Eyrie",      region:"the-vale",         hasCastle:true,  hasPort:false, cardType:"siege",
+    adjacentTo:["hearts-home","the-fingers","gulltown"] },
+  "gulltown":      { id:"gulltown",     name:"Gulltown",       region:"the-vale",         hasCastle:false, hasPort:true,  cardType:"footsoldier",
+    adjacentTo:["the-fingers","the-eyrie","maidenpool","dragonstone"] },
 
-  "winterfell": {
-    id: "winterfell",
-    name: "Winterfell",
-    region: "the-north",
-    hasCastle: true,
-    hasPort: false,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "castle-black",
-      "the-dreadfort",
-      "deepwood-motte",
-      "torrhen-square",
-      "moat-cailin",
-      "white-harbour",
-    ],
-    // Winterfell = Stark Seat of Power
-  },
+  // ── THE WESTERLANDS ───────────────────────────────────────────
+  "golden-tooth":  { id:"golden-tooth", name:"Golden Tooth",   region:"the-westerlands",  hasCastle:false, hasPort:false, cardType:"knight",
+    adjacentTo:["oxcross","casterly-rock","riverrun","stoney-sept"] },
+  "oxcross":       { id:"oxcross",      name:"Oxcross",        region:"the-westerlands",  hasCastle:false, hasPort:false, cardType:"siege",
+    adjacentTo:["golden-tooth","casterly-rock","cleganes-keep","riverrun","stoney-sept"] },
+  "casterly-rock": { id:"casterly-rock",name:"Casterly Rock",  region:"the-westerlands",  hasCastle:true,  hasPort:false, cardType:"footsoldier",
+    adjacentTo:["golden-tooth","oxcross","lannisport","cleganes-keep","silverhill"] },
+  "lannisport":    { id:"lannisport",   name:"Lannisport",     region:"the-westerlands",  hasCastle:false, hasPort:true,  cardType:"knight",
+    adjacentTo:["casterly-rock","cleganes-keep","pyke","silverhill"] },
+  "cleganes-keep": { id:"cleganes-keep",name:"Clegane's Keep", region:"the-westerlands",  hasCastle:false, hasPort:false, cardType:"siege",
+    adjacentTo:["oxcross","casterly-rock","lannisport","silverhill","stoney-sept","seabed-marches"] },
+  "silverhill":    { id:"silverhill",   name:"Silverhill",     region:"the-westerlands",  hasCastle:false, hasPort:false, cardType:"footsoldier",
+    adjacentTo:["casterly-rock","lannisport","cleganes-keep","seabed-marches"] },
 
-  "deepwood-motte": {
-    id: "deepwood-motte",
-    name: "Deepwood Motte",
-    region: "the-north",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "knight",
-    adjacentTo: ["winterfell", "torrhen-square", "bear-island"],
-    // [VERIFY] whether Deepwood Motte connects to Iron Islands territories
-  },
+  // ── THE CROWNLANDS ────────────────────────────────────────────
+  "crackclaw-point":{ id:"crackclaw-point",name:"Crackclaw Point",region:"the-crownlands", hasCastle:false, hasPort:false, cardType:"knight",
+    adjacentTo:["maidenpool","harrenhal","hearts-home","kings-landing","dragonstone"] },
+  "kings-landing": { id:"kings-landing",name:"King's Landing",  region:"the-crownlands",  hasCastle:true,  hasPort:true,  cardType:"siege",
+    adjacentTo:["harrenhal","crackclaw-point","dragonstone","blackwater-rush","kingswood"] },
+  "dragonstone":   { id:"dragonstone",  name:"Dragonstone",    region:"the-crownlands",  hasCastle:true,  hasPort:true,  cardType:"footsoldier",
+    adjacentTo:["crackclaw-point","kings-landing","gulltown","storms-end"] },
+  "blackwater-rush":{ id:"blackwater-rush",name:"Blackwater Rush",region:"the-crownlands", hasCastle:false, hasPort:false, cardType:"knight",
+    adjacentTo:["harrenhal","kings-landing","stoney-sept","kingswood","bronzegate","ashford"] },
 
-  "bear-island": {
-    id: "bear-island",
-    name: "Bear Island",
-    region: "the-north",
-    hasCastle: false,
-    hasPort: true,
-    cardType: "siege",
-    adjacentTo: ["deepwood-motte", "torrhen-square", "pyke"],
-    // Port: Bear Island west coast → can attack Iron Islands ports [VERIFY]
-  },
+  // ── THE REACH ─────────────────────────────────────────────────
+  "stoney-sept":   { id:"stoney-sept",  name:"Stoney Sept",    region:"the-reach",        hasCastle:false, hasPort:false, cardType:"footsoldier",
+    adjacentTo:["riverrun","harrenhal","golden-tooth","oxcross","cleganes-keep","ashford","blackwater-rush","the-mander"] },
+  "ashford":       { id:"ashford",      name:"Ashford",        region:"the-reach",        hasCastle:false, hasPort:false, cardType:"knight",
+    adjacentTo:["stoney-sept","blackwater-rush","highgarden","brightwater-keep","bronzegate","kingswood"] },
+  "highgarden":    { id:"highgarden",   name:"Highgarden",     region:"the-reach",        hasCastle:true,  hasPort:false, cardType:"siege",
+    adjacentTo:["ashford","brightwater-keep","the-mander","horn-hill","three-towers","oldtown","seabed-marches"] },
+  "oldtown":       { id:"oldtown",      name:"Oldtown",        region:"the-reach",        hasCastle:true,  hasPort:true,  cardType:"footsoldier",
+    adjacentTo:["highgarden","horn-hill","three-towers","red-mountains"] },
+  "three-towers":  { id:"three-towers", name:"Three Towers",   region:"the-reach",        hasCastle:false, hasPort:true,  cardType:"knight",
+    adjacentTo:["highgarden","oldtown","seabed-marches","lannisport"] },
+  "horn-hill":     { id:"horn-hill",    name:"Horn Hill",      region:"the-reach",        hasCastle:false, hasPort:false, cardType:"siege",
+    adjacentTo:["highgarden","oldtown","red-mountains","yronwood"] },
+  "brightwater-keep":{ id:"brightwater-keep",name:"Brightwater Keep",region:"the-reach",  hasCastle:false, hasPort:false, cardType:"footsoldier",
+    adjacentTo:["ashford","highgarden","bronzegate"] },
+  "the-mander":    { id:"the-mander",   name:"The Mander",     region:"the-reach",        hasCastle:false, hasPort:false, cardType:"knight",
+    adjacentTo:["stoney-sept","highgarden","seabed-marches"] },
+  "seabed-marches":{ id:"seabed-marches",name:"Seabed Marches", region:"the-reach",       hasCastle:false, hasPort:true,  cardType:"siege",
+    adjacentTo:["cleganes-keep","silverhill","highgarden","three-towers","the-mander"] },
 
-  "torrhen-square": {
-    id: "torrhen-square",
-    name: "Torrhen's Square",
-    region: "the-north",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "deepwood-motte",
-      "bear-island",
-      "winterfell",
-      "moat-cailin",
-    ],
-  },
+  // ── THE STORMLANDS ────────────────────────────────────────────
+  "kingswood":     { id:"kingswood",    name:"Kingswood",      region:"the-stormlands",   hasCastle:false, hasPort:false, cardType:"footsoldier",
+    adjacentTo:["kings-landing","blackwater-rush","ashford","bronzegate","storms-end","rainwood"] },
+  "bronzegate":    { id:"bronzegate",   name:"Bronzegate",     region:"the-stormlands",   hasCastle:false, hasPort:false, cardType:"knight",
+    adjacentTo:["blackwater-rush","ashford","brightwater-keep","kingswood","storms-end"] },
+  "storms-end":    { id:"storms-end",   name:"Storm's End",    region:"the-stormlands",   hasCastle:true,  hasPort:true,  cardType:"siege",
+    adjacentTo:["kingswood","bronzegate","dragonstone","rainwood","tarth","lornish-marches"] },
+  "rainwood":      { id:"rainwood",     name:"Rainwood",       region:"the-stormlands",   hasCastle:false, hasPort:false, cardType:"footsoldier",
+    adjacentTo:["kingswood","storms-end","lornish-marches"] },
+  "lornish-marches":{ id:"lornish-marches",name:"Lornish Marches",region:"the-stormlands",hasCastle:false, hasPort:false, cardType:"knight",
+    adjacentTo:["storms-end","rainwood","tarth","the-tor"] },
+  "tarth":         { id:"tarth",        name:"Tarth",          region:"the-stormlands",   hasCastle:false, hasPort:true,  cardType:"siege",
+    adjacentTo:["storms-end","lornish-marches"] },
 
-  "white-harbour": {
-    id: "white-harbour",
-    name: "White Harbour",
-    region: "the-north",
-    hasCastle: false,
-    hasPort: true,
-    cardType: "knight",
-    adjacentTo: [
-      "karhold",
-      "the-dreadfort",
-      "winterfell",
-      "moat-cailin",
-      "the-twins",  // [VERIFY] cross-region border at The Neck
-      "maidenpool", // port-to-port east coast [VERIFY]
-    ],
-  },
-
-  "moat-cailin": {
-    id: "moat-cailin",
-    name: "Moat Cailin",
-    region: "the-north",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "siege",
-    adjacentTo: [
-      "torrhen-square",
-      "winterfell",
-      "white-harbour",
-      "the-twins",    // gateway between North and Riverlands
-      "seagard",      // [VERIFY]
-    ],
-  },
-
-
-  // ── THE IRON ISLANDS ────────────────────────────────────────────────────────
-
-  "pyke": {
-    id: "pyke",
-    name: "Pyke",
-    region: "the-iron-islands",
-    hasCastle: true,
-    hasPort: true,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "great-wyk",
-      "old-wyk",
-      "bear-island",   // port-to-port west coast [VERIFY]
-      "seagard",       // port-to-port [VERIFY]
-      "lannisport",    // port-to-port west coast [VERIFY]
-    ],
-    // Pyke = Greyjoy home (neutral in base Westeros 3-5 player game)
-  },
-
-  "great-wyk": {
-    id: "great-wyk",
-    name: "Great Wyk",
-    region: "the-iron-islands",
-    hasCastle: false,
-    hasPort: true,
-    cardType: "knight",
-    adjacentTo: [
-      "pyke",
-      "old-wyk",
-      "lannisport", // port-to-port [VERIFY]
-    ],
-  },
-
-  "old-wyk": {
-    id: "old-wyk",
-    name: "Old Wyk",
-    region: "the-iron-islands",
-    hasCastle: false,
-    hasPort: true,
-    cardType: "siege",
-    adjacentTo: [
-      "pyke",
-      "great-wyk",
-    ],
-  },
-
-
-  // ── THE RIVERLANDS ──────────────────────────────────────────────────────────
-
-  "the-twins": {
-    id: "the-twins",
-    name: "The Twins",
-    region: "the-riverlands",
-    hasCastle: true,
-    hasPort: false,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "moat-cailin",
-      "white-harbour",
-      "seagard",
-      "riverrun",
-      "harrenhal",
-    ],
-  },
-
-  "riverrun": {
-    id: "riverrun",
-    name: "Riverrun",
-    region: "the-riverlands",
-    hasCastle: true,
-    hasPort: false,
-    cardType: "knight",
-    adjacentTo: [
-      "the-twins",
-      "seagard",
-      "harrenhal",
-      "golden-tooth",   // border with Westerlands [VERIFY]
-      "oxcross",        // [VERIFY]
-      "ashford",        // [VERIFY] border with The Reach
-    ],
-  },
-
-  "seagard": {
-    id: "seagard",
-    name: "Seagard",
-    region: "the-riverlands",
-    hasCastle: false,
-    hasPort: true,
-    cardType: "siege",
-    adjacentTo: [
-      "the-twins",
-      "riverrun",
-      "moat-cailin",   // [VERIFY]
-      "pyke",          // port-to-port west coast [VERIFY]
-    ],
-  },
-
-  "harrenhal": {
-    id: "harrenhal",
-    name: "Harrenhal",
-    region: "the-riverlands",
-    hasCastle: true,
-    hasPort: false,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "the-twins",
-      "riverrun",
-      "maidenpool",
-      "kings-landing",   // border with Crownlands [VERIFY]
-      "crackclaw-point", // [VERIFY]
-      "oxcross",         // [VERIFY]
-    ],
-  },
-
-  "maidenpool": {
-    id: "maidenpool",
-    name: "Maidenpool",
-    region: "the-riverlands",
-    hasCastle: false,
-    hasPort: true,
-    cardType: "knight",
-    adjacentTo: [
-      "harrenhal",
-      "crackclaw-point",
-      "white-harbour",   // port-to-port east coast [VERIFY]
-      "gulltown",        // port-to-port east coast [VERIFY]
-    ],
-  },
-
-
-  // ── THE VALE ────────────────────────────────────────────────────────────────
-
-  "the-eyrie": {
-    id: "the-eyrie",
-    name: "The Eyrie",
-    region: "the-vale",
-    hasCastle: true,
-    hasPort: false,
-    cardType: "siege",
-    adjacentTo: [
-      "gulltown",
-      "hearts-home",
-      "crackclaw-point", // [VERIFY]
-    ],
-    // The Eyrie = Arryn seat (neutral in 3-5 player game)
-  },
-
-  "gulltown": {
-    id: "gulltown",
-    name: "Gulltown",
-    region: "the-vale",
-    hasCastle: false,
-    hasPort: true,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "the-eyrie",
-      "hearts-home",
-      "maidenpool",      // port-to-port east coast [VERIFY]
-      "dragonstone",     // port-to-port east coast [VERIFY]
-    ],
-  },
-
-  "hearts-home": {
-    id: "hearts-home",
-    name: "Heart's Home",
-    region: "the-vale",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "knight",
-    adjacentTo: [
-      "the-eyrie",
-      "gulltown",
-      "crackclaw-point", // [VERIFY]
-    ],
-  },
-
-
-  // ── THE WESTERLANDS ─────────────────────────────────────────────────────────
-
-  "casterly-rock": {
-    id: "casterly-rock",
-    name: "Casterly Rock",
-    region: "the-westerlands",
-    hasCastle: true,
-    hasPort: false,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "lannisport",
-      "cleganes-keep",
-      "golden-tooth",
-      "oxcross",
-    ],
-    // Casterly Rock = Lannister Seat of Power
-  },
-
-  "lannisport": {
-    id: "lannisport",
-    name: "Lannisport",
-    region: "the-westerlands",
-    hasCastle: false,
-    hasPort: true,
-    cardType: "knight",
-    adjacentTo: [
-      "casterly-rock",
-      "cleganes-keep",
-      "pyke",       // port-to-port west coast [VERIFY]
-      "great-wyk",  // port-to-port [VERIFY]
-      "three-towers", // port-to-port [VERIFY]
-    ],
-  },
-
-  "cleganes-keep": {
-    id: "cleganes-keep",
-    name: "Clegane's Keep",
-    region: "the-westerlands",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "siege",
-    adjacentTo: [
-      "casterly-rock",
-      "lannisport",
-      "golden-tooth",
-      "ashford",     // border with The Reach [VERIFY]
-    ],
-  },
-
-  "oxcross": {
-    id: "oxcross",
-    name: "Oxcross",
-    region: "the-westerlands",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "casterly-rock",
-      "golden-tooth",
-      "riverrun",    // [VERIFY]
-      "harrenhal",   // [VERIFY]
-      "ashford",     // [VERIFY]
-    ],
-  },
-
-  "golden-tooth": {
-    id: "golden-tooth",
-    name: "Golden Tooth",
-    region: "the-westerlands",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "knight",
-    adjacentTo: [
-      "casterly-rock",
-      "lannisport",
-      "cleganes-keep",
-      "oxcross",
-      "riverrun",    // [VERIFY]
-    ],
-  },
-
-
-  // ── THE CROWNLANDS ──────────────────────────────────────────────────────────
-
-  "kings-landing": {
-    id: "kings-landing",
-    name: "King's Landing",
-    region: "the-crownlands",
-    hasCastle: true,
-    hasPort: true,
-    cardType: "siege",
-    adjacentTo: [
-      "crackclaw-point",
-      "harrenhal",         // [VERIFY]
-      "dragonstone",       // port-to-port east coast [VERIFY]
-      "storms-end",        // border with Stormlands [VERIFY]
-      "bronzegate",        // [VERIFY]
-      "ashford",           // [VERIFY]
-    ],
-  },
-
-  "dragonstone": {
-    id: "dragonstone",
-    name: "Dragonstone",
-    region: "the-crownlands",
-    hasCastle: true,
-    hasPort: true,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "crackclaw-point",
-      "kings-landing",     // port-to-port [VERIFY]
-      "gulltown",          // port-to-port east coast [VERIFY]
-      "storms-end",        // port-to-port east coast [VERIFY]
-    ],
-    // Dragonstone = Baratheon Seat of Power (Stannis faction)
-    // Note: also thematically linked to Targaryen but on Westeros map is Baratheon
-  },
-
-  "crackclaw-point": {
-    id: "crackclaw-point",
-    name: "Crackclaw Point",
-    region: "the-crownlands",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "knight",
-    adjacentTo: [
-      "kings-landing",
-      "dragonstone",
-      "harrenhal",    // [VERIFY]
-      "maidenpool",   // [VERIFY]
-      "the-eyrie",    // [VERIFY]
-      "hearts-home",  // [VERIFY]
-    ],
-  },
-
-
-  // ── THE REACH ───────────────────────────────────────────────────────────────
-
-  "highgarden": {
-    id: "highgarden",
-    name: "Highgarden",
-    region: "the-reach",
-    hasCastle: true,
-    hasPort: false,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "brightwater-keep",
-      "ashford",
-      "three-towers",
-      "oldtown",
-      "horn-hill",
-    ],
-    // Highgarden = Tyrell Seat of Power
-  },
-
-  "oldtown": {
-    id: "oldtown",
-    name: "Oldtown",
-    region: "the-reach",
-    hasCastle: true,
-    hasPort: true,
-    cardType: "knight",
-    adjacentTo: [
-      "highgarden",
-      "horn-hill",
-      "three-towers",
-      "planky-town",   // port-to-port south coast [VERIFY]
-    ],
-  },
-
-  "brightwater-keep": {
-    id: "brightwater-keep",
-    name: "Brightwater Keep",
-    region: "the-reach",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "siege",
-    adjacentTo: [
-      "highgarden",
-      "ashford",
-      "bronzegate",  // border with Stormlands [VERIFY]
-    ],
-  },
-
-  "ashford": {
-    id: "ashford",
-    name: "Ashford",
-    region: "the-reach",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "highgarden",
-      "brightwater-keep",
-      "cleganes-keep",   // [VERIFY]
-      "oxcross",         // [VERIFY]
-      "riverrun",        // [VERIFY]
-      "kings-landing",   // [VERIFY]
-      "bronzegate",      // [VERIFY]
-    ],
-  },
-
-  "horn-hill": {
-    id: "horn-hill",
-    name: "Horn Hill",
-    region: "the-reach",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "knight",
-    adjacentTo: [
-      "highgarden",
-      "oldtown",
-      "yronwood",   // border with Dorne [VERIFY]
-    ],
-  },
-
-  "three-towers": {
-    id: "three-towers",
-    name: "Three Towers",
-    region: "the-reach",
-    hasCastle: false,
-    hasPort: true,
-    cardType: "siege",
-    adjacentTo: [
-      "highgarden",
-      "oldtown",
-      "lannisport",   // port-to-port west coast [VERIFY]
-      "planky-town",  // port-to-port [VERIFY]
-    ],
-  },
-
-
-  // ── THE STORMLANDS ──────────────────────────────────────────────────────────
-
-  "storms-end": {
-    id: "storms-end",
-    name: "Storm's End",
-    region: "the-stormlands",
-    hasCastle: true,
-    hasPort: true,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "bronzegate",
-      "felwood",
-      "kings-landing",   // [VERIFY]
-      "dragonstone",     // port-to-port east coast [VERIFY]
-      "the-tor",         // port-to-port south-east coast [VERIFY]
-    ],
-    // Storm's End = Baratheon Seat of Power (Renly faction)
-  },
-
-  "bronzegate": {
-    id: "bronzegate",
-    name: "Bronzegate",
-    region: "the-stormlands",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "knight",
-    adjacentTo: [
-      "storms-end",
-      "felwood",
-      "kings-landing",      // [VERIFY]
-      "brightwater-keep",   // [VERIFY]
-      "ashford",            // [VERIFY]
-    ],
-  },
-
-  "felwood": {
-    id: "felwood",
-    name: "Felwood",
-    region: "the-stormlands",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "siege",
-    adjacentTo: [
-      "storms-end",
-      "bronzegate",
-      "the-tor",    // border with Dorne [VERIFY]
-      "yronwood",   // [VERIFY]
-    ],
-  },
-
-
-  // ── DORNE ───────────────────────────────────────────────────────────────────
-
-  "sunspear": {
-    id: "sunspear",
-    name: "Sunspear",
-    region: "dorne",
-    hasCastle: true,
-    hasPort: true,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "the-tor",
-      "planky-town",
-      "yronwood",
-    ],
-    // Sunspear = Martell Seat of Power
-  },
-
-  "the-tor": {
-    id: "the-tor",
-    name: "The Tor",
-    region: "dorne",
-    hasCastle: false,
-    hasPort: true,
-    cardType: "knight",
-    adjacentTo: [
-      "sunspear",
-      "planky-town",
-      "yronwood",
-      "felwood",       // border with Stormlands [VERIFY]
-      "storms-end",    // port-to-port [VERIFY]
-    ],
-  },
-
-  "planky-town": {
-    id: "planky-town",
-    name: "Planky Town",
-    region: "dorne",
-    hasCastle: false,
-    hasPort: true,
-    cardType: "siege",
-    adjacentTo: [
-      "sunspear",
-      "the-tor",
-      "yronwood",
-      "oldtown",      // port-to-port south coast [VERIFY]
-      "three-towers", // port-to-port [VERIFY]
-    ],
-  },
-
-  "yronwood": {
-    id: "yronwood",
-    name: "Yronwood",
-    region: "dorne",
-    hasCastle: false,
-    hasPort: false,
-    cardType: "footsoldier",
-    adjacentTo: [
-      "sunspear",
-      "the-tor",
-      "planky-town",
-      "felwood",     // border with Stormlands [VERIFY]
-      "horn-hill",   // border with The Reach [VERIFY]
-    ],
-  },
+  // ── DORNE ─────────────────────────────────────────────────────
+  "red-mountains": { id:"red-mountains",name:"Red Mountains",  region:"dorne",            hasCastle:false, hasPort:false, cardType:"footsoldier",
+    adjacentTo:["oldtown","horn-hill","yronwood","sandstone"] },
+  "yronwood":      { id:"yronwood",     name:"Yronwood",       region:"dorne",            hasCastle:false, hasPort:false, cardType:"knight",
+    adjacentTo:["horn-hill","red-mountains","the-tor","sandstone","greenblood"] },
+  "the-tor":       { id:"the-tor",      name:"The Tor",        region:"dorne",            hasCastle:false, hasPort:true,  cardType:"siege",
+    adjacentTo:["yronwood","lornish-marches","greenblood","planky-town","sunspear"] },
+  "sandstone":     { id:"sandstone",    name:"Sandstone",      region:"dorne",            hasCastle:false, hasPort:false, cardType:"footsoldier",
+    adjacentTo:["red-mountains","yronwood","greenblood"] },
+  "greenblood":    { id:"greenblood",   name:"Greenblood",     region:"dorne",            hasCastle:false, hasPort:false, cardType:"knight",
+    adjacentTo:["yronwood","sandstone","the-tor","planky-town"] },
+  "planky-town":   { id:"planky-town",  name:"Planky Town",    region:"dorne",            hasCastle:false, hasPort:true,  cardType:"siege",
+    adjacentTo:["greenblood","the-tor","sunspear","oldtown"] },
+  "sunspear":      { id:"sunspear",     name:"Sunspear",       region:"dorne",            hasCastle:true,  hasPort:true,  cardType:"footsoldier",
+    adjacentTo:["the-tor","planky-town"] }
 };
 
 
@@ -802,7 +259,7 @@ export const TERRITORIES = {
 // color is a CSS color string used to tint territories and army badges.
 // -----------------------------------------------------------------------------
 
-export const HOUSES = {
+const HOUSES = {
   "stark": {
     id: "stark",
     name: "House Stark",
@@ -825,8 +282,8 @@ export const HOUSES = {
     id: "baratheon",
     name: "House Baratheon",
     sigil: "🦌",
-    color: "#e8c840",         // yellow
-    colorDark: "#b09010",
+    color: "#8b5a2b",         // brown
+    colorDark: "#5d3a1a",
     seatOfPower: "storms-end",
     startingRegion: "the-stormlands",
   },
@@ -858,7 +315,7 @@ export const HOUSES = {
 // Wild cards can substitute for any type in a set.
 // -----------------------------------------------------------------------------
 
-export const CARD_TYPES = {
+const CARD_TYPES = {
   footsoldier: { label: "Footsoldier", emoji: "⚔️" },
   knight:      { label: "Knight",      emoji: "🐴" },
   siege:       { label: "Siege",       emoji: "🏹" },
@@ -867,15 +324,22 @@ export const CARD_TYPES = {
 
 // Trade-in values: index 0 = first set traded, index 1 = second, etc.
 // After the 6th set (index 5 = 15 armies), each subsequent set adds 5 more.
-export const CARD_TRADE_VALUES = [4, 6, 8, 10, 12, 15];
-export const CARD_TRADE_INCREMENT_AFTER_SIX = 5;
+// Fixed trade values by set type — no escalation.
+// 3 of a kind: footsoldier=4, knight=6, siege=6. 1 of each=7.
+// Wilds substitute for any type.
+var CARD_TRADE_VALUES = {
+  footsoldier: 4,
+  knight:      6,
+  siege:       6,
+  mixed:       7
+};
 
 // Matching territory bonus: if any card in a traded set matches a territory
 // the player owns, they place this many extra armies on that territory.
-export const CARD_TERRITORY_MATCH_BONUS = 2;
+const CARD_TERRITORY_MATCH_BONUS = 2;
 
 // Wild card count in the deck.
-export const WILD_CARD_COUNT = 2;
+const WILD_CARD_COUNT = 2;
 
 
 // -----------------------------------------------------------------------------
@@ -885,8 +349,8 @@ export const WILD_CARD_COUNT = 2;
 // + region bonuses + card trade-in bonuses.
 // -----------------------------------------------------------------------------
 
-export const MIN_ARMIES_PER_TURN = 3;
-export const TERRITORY_DIVISOR = 3;
+const MIN_ARMIES_PER_TURN = 3;
+const TERRITORY_DIVISOR = 3;
 
 
 // -----------------------------------------------------------------------------
@@ -897,7 +361,7 @@ export const TERRITORY_DIVISOR = 3;
 /**
  * Returns an array of all territory IDs on the board.
  */
-export function getAllTerritoryIds() {
+function getAllTerritoryIds() {
   return Object.keys(TERRITORIES);
 }
 
@@ -908,7 +372,7 @@ export function getAllTerritoryIds() {
  * @param {string[]} ownedTerritoryIds
  * @returns {number} total region bonus armies
  */
-export function calcRegionBonus(ownedTerritoryIds) {
+function calcRegionBonus(ownedTerritoryIds) {
   const ownedSet = new Set(ownedTerritoryIds);
   let bonus = 0;
   for (const region of Object.values(REGIONS)) {
@@ -925,7 +389,7 @@ export function calcRegionBonus(ownedTerritoryIds) {
  * @param {string[]} ownedTerritoryIds
  * @returns {number}
  */
-export function calcBaseReinforcements(ownedTerritoryIds) {
+function calcBaseReinforcements(ownedTerritoryIds) {
   const fromTerritories = Math.max(
     MIN_ARMIES_PER_TURN,
     Math.floor(ownedTerritoryIds.length / TERRITORY_DIVISOR)
@@ -940,14 +404,55 @@ export function calcBaseReinforcements(ownedTerritoryIds) {
  * @param {number} setsTraded — zero-indexed count of sets traded so far this game
  * @returns {number} armies earned for this trade
  */
-export function calcCardTradeValue(setsTraded) {
-  if (setsTraded < CARD_TRADE_VALUES.length) {
-    return CARD_TRADE_VALUES[setsTraded];
-  }
-  // After 6th set: 15 + (n - 5) * 5 where n = setsTraded (0-indexed)
-  const extraSets = setsTraded - (CARD_TRADE_VALUES.length - 1);
-  return 15 + extraSets * CARD_TRADE_INCREMENT_AFTER_SIX;
+ // Returns armies earned for a set of 3 cards.
+// Pass the 3 cardType strings (after wild substitution).
+// Call calcCardSetValue(types) instead for the new fixed system.
+function calcCardTradeValue(setsTraded) {
+  // Legacy signature kept so nothing breaks — returns minimum value.
+  return 4;
 }
+
+// NEW: returns the correct fixed value for a specific set of 3 card types.
+// types = array of 3 strings e.g. ["footsoldier","footsoldier","footsoldier"]
+// Wilds are treated as wildcards — they take on whatever type gives most value.
+function calcCardSetValue(types) {
+  var nonWild = types.filter(function(t) { return t !== "wild"; });
+  var wilds   = types.length - nonWild.length;
+
+  // With 2 or 3 wilds we can make any 3-of-a-kind — best is siege/knight = 6.
+  if (wilds >= 2) return 6;
+
+  // With 1 wild and 2 non-wilds:
+  // If both non-wilds are the same type, wild matches = 3 of a kind.
+  // If both are different types, wild can complete either a 3-of-a-kind or mixed.
+  // Best outcome: if we can form 3-of-a-kind of siege or knight, do it (=6).
+  // Otherwise mixed = 7.
+  if (wilds === 1) {
+    if (nonWild[0] === nonWild[1]) {
+      return CARD_TRADE_VALUES[nonWild[0]] || 4;
+    }
+    // Two different non-wilds + 1 wild = 1 of each = 7.
+    return 7;
+  }
+
+  // No wilds.
+  var unique = {};
+  for (var i = 0; i < nonWild.length; i++) unique[nonWild[i]] = true;
+  var uniqueCount = Object.keys(unique).length;
+
+  if (uniqueCount === 1) {
+    // 3 of a kind.
+    return CARD_TRADE_VALUES[nonWild[0]] || 4;
+  }
+  if (uniqueCount === 3) {
+    // 1 of each.
+    return 7;
+  }
+  // Should not reach here for a valid set — return minimum.
+  return 4;
+}
+
+
 
 /**
  * Checks if three card types form a valid trade-in set.
@@ -956,7 +461,7 @@ export function calcCardTradeValue(setsTraded) {
  * @param {string[]} types — array of 3 cardType strings
  * @returns {boolean}
  */
-export function isValidCardSet(types) {
+function isValidCardSet(types) {
   if (types.length !== 3) return false;
 
   const wilds = types.filter((t) => t === "wild").length;
@@ -980,7 +485,7 @@ export function isValidCardSet(types) {
  *
  * @returns {{ territoryId: string|null, cardType: string }[]}
  */
-export function buildCardDeck() {
+function buildCardDeck() {
   const deck = [];
 
   for (const territory of Object.values(TERRITORIES)) {
@@ -1003,7 +508,7 @@ export function buildCardDeck() {
  * @param {any[]} array
  * @returns {any[]}
  */
-export function shuffle(array) {
+function shuffle(array) {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -1011,3 +516,5 @@ export function shuffle(array) {
   }
   return arr;
 }
+
+
