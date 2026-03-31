@@ -2372,7 +2372,7 @@ function _shuffleArray(array) {
 
 var MAP_VIEWBOX_W = 600;
 var MAP_VIEWBOX_H = 1000;
-var NODE_RADIUS   = 13;
+var NODE_RADIUS   = 16;
 
 var TERRITORY_COORDS = {
   // ── THE NORTH ──────────────────────────────────
