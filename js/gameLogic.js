@@ -1,3 +1,4 @@
+/* ===== gameLogic.js ===== */
 // =============================================================================
 // gameLogic.js
 // Orchestration layer — sits between inputHandler.js and gameState.js.
@@ -24,42 +25,7 @@
 //             → renderer reads getState() and repaints
 // =============================================================================
 
-import {
-  TERRITORIES,
-  HOUSES,
-  REGIONS,
-  isValidCardSet,
-  calcCardTradeValue,
-  calcBaseReinforcements,
-} from "./boardData.js";
 
-import {
-  PHASES,
-  GAME_MODES,
-  getState,
-  getCurrentPlayer,
-  getTerritoryState,
-  getTerritoriesOwnedBy,
-  getPlayerIndexByHouse,
-  initGame,
-  initSetupArmies,
-  setupPlaceArmies,
-  completeSetup,
-  placeReinforcements,
-  endReinforcePhase,
-  beginAttack,
-  resolveAttack,
-  occupyConqueredTerritory,
-  cancelAttack,
-  endAttackPhase,
-  manoeuvre,
-  endManoeuvrePhase,
-  drawCard,
-  tradeCards,
-  endTurn,
-  calcSkirmishScores,
-  getLog,
-} from "./gameState.js";
 
 
 // =============================================================================
@@ -96,7 +62,7 @@ const SETUP_ARMIES_BY_PLAYER_COUNT = {
  *
  * @returns {{ success: boolean, error?: string }}
  */
-export function startNewGame(config) {
+function startNewGame(config) {
   try {
     const playerCount = config.players.length;
     if (playerCount < 2 || playerCount > 5) {
@@ -116,20 +82,21 @@ export function startNewGame(config) {
 
     // Deal territory cards and place 2 armies on each.
     // We work with all territory IDs and deal them like cards.
-    const allTerritoryIds = Object.keys(TERRITORIES);
-    const shuffled = _shuffleArray([...allTerritoryIds]);
+  // Deal territories equally — every player gets the same count.
+    // Any remainder territories go to neutral (2 armies, no player owner).
+    var allTerritoryIds = Object.keys(TERRITORIES);
+    var shuffled        = _shuffleArray(allTerritoryIds.slice());
+    var perPlayer       = Math.floor(shuffled.length / playerCount);
 
-    // Deal to players round-robin, tracking leftovers for neutral placement.
-    const dealtTo = {}; // territoryId → playerIndex
-    for (let i = 0; i < shuffled.length; i++) {
-      const playerIndex = i % playerCount;
-      dealtTo[shuffled[i]] = playerIndex;
+    // First (perPlayer * playerCount) territories split equally.
+    for (var t = 0; t < perPlayer * playerCount; t++) {
+      var playerIndex = t % playerCount;
+      setupPlaceArmies(shuffled[t], config.players[playerIndex].houseId, 2);
     }
 
-    // Place 2 armies on each territory for its owner (or neutral).
-    for (const [territoryId, playerIndex] of Object.entries(dealtTo)) {
-      const houseId = config.players[playerIndex].houseId;
-      setupPlaceArmies(territoryId, houseId, 2);
+    // Remaining territories go to neutral.
+    for (var n = perPlayer * playerCount; n < shuffled.length; n++) {
+      setupPlaceArmiesNeutral(shuffled[n], 2);
     }
 
     // Mark setup complete → advances phase to REINFORCE for firstPlayer.
@@ -160,7 +127,7 @@ export function startNewGame(config) {
  *
  * @returns {number}
  */
-export function getReinforceCount() {
+function getReinforceCount() {
   const state = getState();
   const currentPlayer = state.players[state.currentPlayerIndex];
   const owned = getTerritoriesOwnedBy(currentPlayer.houseId);
@@ -173,7 +140,7 @@ export function getReinforceCount() {
  *
  * @returns {string[]} array of territory IDs
  */
-export function getValidReinforceTargets() {
+function getValidReinforceTargets() {
   const state = getState();
   const currentHouse = state.players[state.currentPlayerIndex].houseId;
   return Object.entries(state.territories)
@@ -188,7 +155,7 @@ export function getValidReinforceTargets() {
  *
  * @returns {string[]} array of territory IDs
  */
-export function getValidAttackSources() {
+function getValidAttackSources() {
   const state = getState();
   const currentHouse = state.players[state.currentPlayerIndex].houseId;
 
@@ -211,7 +178,7 @@ export function getValidAttackSources() {
  * @param {string} fromId — the attacking territory
  * @returns {string[]} array of territory IDs
  */
-export function getValidAttackTargets(fromId) {
+function getValidAttackTargets(fromId) {
   const state = getState();
   const currentHouse = state.players[state.currentPlayerIndex].houseId;
 
@@ -227,7 +194,7 @@ export function getValidAttackTargets(fromId) {
  * @param {string} fromId
  * @returns {number} 1, 2, or 3
  */
-export function getMaxAttackDice(fromId) {
+function getMaxAttackDice(fromId) {
   const t = getTerritoryState(fromId);
   return Math.min(3, t.armies - 1);
 }
@@ -239,7 +206,7 @@ export function getMaxAttackDice(fromId) {
  * @param {string} toId — the defending territory
  * @returns {number} 1 or 2
  */
-export function getDefenderDice(toId) {
+function getDefenderDice(toId) {
   const t = getTerritoryState(toId);
   return Math.min(2, t.armies);
 }
@@ -250,20 +217,22 @@ export function getDefenderDice(toId) {
  *
  * @returns {string[]} array of territory IDs
  */
-export function getValidManoeuvreSources() {
-  const state = getState();
+function getValidManoeuvreSources() {
+  var state        = getState();
   if (state.manoeuvreUsed) return [];
-  const currentHouse = state.players[state.currentPlayerIndex].houseId;
-
-  return Object.entries(state.territories)
-    .filter(([id, t]) => {
-      if (t.owner !== currentHouse) return false;
-      if (t.armies < 2) return false;
-      return TERRITORIES[id].adjacentTo.some(
-        (adjId) => state.territories[adjId]?.owner === currentHouse
-      );
-    })
-    .map(([id]) => id);
+  var currentHouse = state.players[state.currentPlayerIndex].houseId;
+  var result       = [];
+  var entries      = Object.entries(state.territories);
+  for (var i = 0; i < entries.length; i++) {
+    var id = entries[i][0];
+    var t  = entries[i][1];
+    if (t.owner !== currentHouse) continue;
+    if (t.armies < 2) continue;
+    // Valid source if there is at least one other owned territory reachable.
+    var reachable = getValidManoeuvreTargets(id);
+    if (reachable.length > 0) result.push(id);
+  }
+  return result;
 }
 
 /**
@@ -272,12 +241,30 @@ export function getValidManoeuvreSources() {
  * @param {string} fromId
  * @returns {string[]} array of territory IDs
  */
-export function getValidManoeuvreTargets(fromId) {
-  const state = getState();
-  const currentHouse = state.players[state.currentPlayerIndex].houseId;
-  return TERRITORIES[fromId].adjacentTo.filter(
-    (adjId) => state.territories[adjId]?.owner === currentHouse
-  );
+function getValidManoeuvreTargets(fromId) {
+  // BFS through all connected owned territories — not just adjacent ones.
+  // A player may move armies through any chain of territories they own.
+  var state        = getState();
+  var currentHouse = state.players[state.currentPlayerIndex].houseId;
+  var visited      = {};
+  var queue        = [fromId];
+  visited[fromId]  = true;
+  var reachable    = [];
+
+  while (queue.length > 0) {
+    var current = queue.shift();
+    var adj     = TERRITORIES[current] ? TERRITORIES[current].adjacentTo : [];
+    for (var i = 0; i < adj.length; i++) {
+      var adjId = adj[i];
+      if (visited[adjId]) continue;
+      if (!state.territories[adjId]) continue;
+      if (state.territories[adjId].owner !== currentHouse) continue;
+      visited[adjId] = true;
+      reachable.push(adjId);
+      queue.push(adjId);
+    }
+  }
+  return reachable;
 }
 
 /**
@@ -286,7 +273,7 @@ export function getValidManoeuvreTargets(fromId) {
  *
  * @returns {boolean}
  */
-export function mustTradeCards() {
+function mustTradeCards() {
   const player = getCurrentPlayer();
   return player.cards.length >= 6;
 }
@@ -297,7 +284,7 @@ export function mustTradeCards() {
  *
  * @returns {boolean}
  */
-export function canTradeCards() {
+function canTradeCards() {
   const state = getState();
   const inValidPhase =
     state.phase === PHASES.REINFORCE || state.phase === PHASES.DRAW;
@@ -315,7 +302,7 @@ export function canTradeCards() {
  * @param {Array} cards — the player's cards array
  * @returns {number[][]}
  */
-export function findAllValidCardSets(cards) {
+function findAllValidCardSets(cards) {
   const validSets = [];
   const n = cards.length;
 
@@ -340,9 +327,19 @@ export function findAllValidCardSets(cards) {
  *
  * @returns {number}
  */
-export function previewTradeValue() {
-  const player = getCurrentPlayer();
-  return calcCardTradeValue(player.cardSetsTraded);
+function previewTradeValue() {
+  // Show the best possible trade value from the current hand.
+  // If the player has no valid sets yet, show the minimum (4).
+  var player = getCurrentPlayer();
+  var validSets = findAllValidCardSets(player.cards);
+  if (validSets.length === 0) return 4;
+  var best = 0;
+  for (var i = 0; i < validSets.length; i++) {
+    var types = validSets[i].map(function(idx) { return player.cards[idx].cardType; });
+    var val = calcCardSetValue(types);
+    if (val > best) best = val;
+  }
+  return best;
 }
 
 /**
@@ -353,7 +350,7 @@ export function previewTradeValue() {
  * @param {number[]} cardIndices — 3 indices into player's cards array
  * @returns {string|null} matching territory ID, or null
  */
-export function findCardSetMatchTerritory(cardIndices) {
+function findCardSetMatchTerritory(cardIndices) {
   const state = getState();
   const player = state.players[state.currentPlayerIndex];
 
@@ -374,7 +371,7 @@ export function findCardSetMatchTerritory(cardIndices) {
  *
  * @returns {string}
  */
-export function getPhaseInstructions() {
+function getPhaseInstructions() {
   const state = getState();
   const player = state.players[state.currentPlayerIndex];
   const house = HOUSES[player.houseId];
@@ -432,7 +429,7 @@ export function getPhaseInstructions() {
  *                             inputHandler creates this at the start of reinforce phase.
  * @returns {{ success, error?, armiesRemaining }}
  */
-export function actionPlaceReinforcements(territoryId, count, session) {
+function actionPlaceReinforcements(territoryId, count, session) {
   if (count < 1) {
     return { success: false, error: "Must place at least 1 army." };
   }
@@ -458,7 +455,7 @@ export function actionPlaceReinforcements(territoryId, count, session) {
  * @param {object} session — { armiesRemaining: number }
  * @returns {{ success, error? }}
  */
-export function actionEndReinforce(session) {
+function actionEndReinforce(session) {
   if (session.armiesRemaining > 0) {
     return {
       success: false,
@@ -494,7 +491,7 @@ export function actionEndReinforce(session) {
  *   }
  * }}
  */
-export function actionAttack(fromId, toId, attackerDice) {
+function actionAttack(fromId, toId, attackerDice) {
   try {
     // Set up the attack in state (validates legality).
     beginAttack(fromId, toId, attackerDice);
@@ -535,7 +532,7 @@ export function actionAttack(fromId, toId, attackerDice) {
  * @param {number} count — armies to move in
  * @returns {{ success, error? }}
  */
-export function actionOccupy(count) {
+function actionOccupy(count) {
   try {
     occupyConqueredTerritory(count);
     return { success: true };
@@ -548,7 +545,7 @@ export function actionOccupy(count) {
  * Ends the attack phase.
  * @returns {{ success, error? }}
  */
-export function actionEndAttack() {
+function actionEndAttack() {
   try {
     endAttackPhase();
     return { success: true };
@@ -565,7 +562,7 @@ export function actionEndAttack() {
  * @param {number} count
  * @returns {{ success, error? }}
  */
-export function actionManoeuvre(fromId, toId, count) {
+function actionManoeuvre(fromId, toId, count) {
   try {
     manoeuvre(fromId, toId, count);
     return { success: true };
@@ -578,7 +575,7 @@ export function actionManoeuvre(fromId, toId, count) {
  * Ends the manoeuvre phase.
  * @returns {{ success, error? }}
  */
-export function actionEndManoeuvre() {
+function actionEndManoeuvre() {
   try {
     endManoeuvrePhase();
     return { success: true };
@@ -594,7 +591,7 @@ export function actionEndManoeuvre() {
  *
  * @returns {{ success, error?, data?: { gameOver, scores? } }}
  */
-export function actionDrawCard() {
+function actionDrawCard() {
   try {
     drawCard();
     const state = getState();
@@ -622,7 +619,7 @@ export function actionDrawCard() {
  * @param {object}   session       — { armiesRemaining: number } (mutated in place)
  * @returns {{ success, error?, armiesEarned?, matchTerritory? }}
  */
-export function actionTradeCards(cardIndices, session) {
+function actionTradeCards(cardIndices, session) {
   // Validate it's a legal set before committing.
   const player = getCurrentPlayer();
   const types = cardIndices.map((i) => player.cards[i]?.cardType);
@@ -634,11 +631,15 @@ export function actionTradeCards(cardIndices, session) {
     return { success: false, error: "Those 3 cards do not form a valid set." };
   }
 
-  const matchTerritory = findCardSetMatchTerritory(cardIndices);
+const matchTerritory = findCardSetMatchTerritory(cardIndices);
+  const matchBonus     = matchTerritory ? 2 : 0;
 
   try {
     const armiesEarned = tradeCards(cardIndices, matchTerritory);
-    session.armiesRemaining += armiesEarned;
+    // armiesEarned includes the +2 match bonus — subtract it back out before
+    // adding to the placeable pool. The bonus armies go directly onto the
+    // matching territory inside tradeCards(), not into the pool.
+    session.armiesRemaining += (armiesEarned - matchBonus);
     return { success: true, armiesEarned, matchTerritory };
   } catch (err) {
     return { success: false, error: err.message };
@@ -651,7 +652,7 @@ export function actionTradeCards(cardIndices, session) {
  *
  * @returns {{ success, error?, data?: { gameOver, scores? } }}
  */
-export function actionEndTurn() {
+function actionEndTurn() {
   if (mustTradeCards()) {
     return {
       success: false,
@@ -690,7 +691,7 @@ export function actionEndTurn() {
  *   isCurrentPlayerOwned, adjacentTo
  * }]
  */
-export function getTerritoryDisplayData() {
+function getTerritoryDisplayData() {
   const state = getState();
   const currentHouse = state.players[state.currentPlayerIndex]?.houseId;
 
@@ -727,7 +728,7 @@ export function getTerritoryDisplayData() {
  *   cardCount, cardSetsTraded, isAI
  * }]
  */
-export function getPlayerDisplayData() {
+function getPlayerDisplayData() {
   const state = getState();
   const currentIndex = state.currentPlayerIndex;
 
@@ -768,11 +769,10 @@ export function getPlayerDisplayData() {
  *   mustTrade: boolean,
  * }}
  */
-export function getCardDisplayData() {
+function getCardDisplayData() {
   const player = getCurrentPlayer();
-  const { CARD_TYPES } = await import("./boardData.js").catch(() => ({}));
 
-  // Inline card type display data to avoid async in this context.
+  // Card display data inlined — matching boardData.CARD_TYPES exactly.
   const CARD_DISPLAY = {
     footsoldier: { label: "Footsoldier", emoji: "⚔️" },
     knight:      { label: "Knight",      emoji: "🐴" },
@@ -781,17 +781,23 @@ export function getCardDisplayData() {
     "valar-morghulis": { label: "Valar Morghulis", emoji: "💀" },
   };
 
+var state = getState();
   const cards = player.cards.map((card, i) => {
     const display = CARD_DISPLAY[card.cardType] ?? { label: card.cardType, emoji: "?" };
+    var ownsTerritory = card.territoryId
+      ? state.territories[card.territoryId]?.owner === player.houseId
+      : false;
     return {
-      index:       i,
-      cardType:    card.cardType,
-      territoryId: card.territoryId,
+      index:         i,
+      cardType:      card.cardType,
+      territoryId:   card.territoryId,
       territoryName: card.territoryId ? TERRITORIES[card.territoryId]?.name ?? card.territoryId : null,
-      emoji:       display.emoji,
-      label:       display.label,
+      emoji:         display.emoji,
+      label:         display.label,
+      ownsTerritory: ownsTerritory,   // true = trading this card gives +2 army bonus
     };
   });
+
 
   return {
     cards,
@@ -807,7 +813,7 @@ export function getCardDisplayData() {
  *
  * @returns {Array} [{ rank, houseId, name, sigil, color, score, territories, castles, ports }, ...]
  */
-export function getScoreDisplayData() {
+function getScoreDisplayData() {
   const scores = calcSkirmishScores();
   return scores.map((s, i) => ({
     rank:        i + 1,
@@ -853,3 +859,5 @@ function _shuffleArray(array) {
   }
   return arr;
 }
+
+
