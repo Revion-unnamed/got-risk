@@ -587,20 +587,35 @@ function renderMap() {
     var cc2     = triCC[tris[1]];
     if (!cc1 || !cc2) continue;
 
+
     if (regA !== regB) {
-      // Region border — draw in region colour of both sides (use A's colour).
-      var regColour = REGION_LABEL_COLOURS[regA] || "#888";
-      svgRegBorders += '<line x1="' + cc1.x.toFixed(1) + '" y1="' + cc1.y.toFixed(1)
-        + '" x2="' + cc2.x.toFixed(1) + '" y2="' + cc2.y.toFixed(1) + '"'
-        + ' stroke="' + regColour + '" stroke-width="3" stroke-opacity="0.85"'
-        + ' pointer-events="none"/>';
-    } else {
-      // Same region — thin internal border.
-      svgBorders += '<line x1="' + cc1.x.toFixed(1) + '" y1="' + cc1.y.toFixed(1)
-        + '" x2="' + cc2.x.toFixed(1) + '" y2="' + cc2.y.toFixed(1) + '"'
-        + ' stroke="rgba(0,0,0,0.55)" stroke-width="1"'
-        + ' pointer-events="none"/>';
-    }
+  // Draw two lines, one per side, each nudged 2 units toward its seed.
+  var nudge = 2;
+  var ex = cc2.x - cc1.x, ey = cc2.y - cc1.y;
+  var len = Math.sqrt(ex*ex + ey*ey) || 1;
+  // Perpendicular pointing from edge toward point A's seed.
+  var sA = points[idxA], sB = points[idxB];
+  var mx = (cc1.x + cc2.x) / 2, my = (cc1.y + cc2.y) / 2;
+  var toA = { x: sA.x - mx, y: sA.y - my };
+  var toAlen = Math.sqrt(toA.x*toA.x + toA.y*toA.y) || 1;
+  var nA = { x: toA.x/toAlen * nudge, y: toA.y/toAlen * nudge };
+  var nB = { x: -nA.x, y: -nA.y };
+  var regColourA = REGION_LABEL_COLOURS[regA] || "#888";
+  var regColourB = REGION_LABEL_COLOURS[regB] || "#888";
+  svgRegBorders += '<line x1="'+(cc1.x+nA.x).toFixed(1)+'" y1="'+(cc1.y+nA.y).toFixed(1)
+    +'" x2="'+(cc2.x+nA.x).toFixed(1)+'" y2="'+(cc2.y+nA.y).toFixed(1)+'"'
+    +' stroke="'+regColourA+'" stroke-width="2.5" stroke-opacity="0.9" pointer-events="none"/>';
+  svgRegBorders += '<line x1="'+(cc1.x+nB.x).toFixed(1)+'" y1="'+(cc1.y+nB.y).toFixed(1)
+    +'" x2="'+(cc2.x+nB.x).toFixed(1)+'" y2="'+(cc2.y+nB.y).toFixed(1)+'"'
+    +' stroke="'+regColourB+'" stroke-width="3.5" stroke-opacity="0.9" pointer-events="none"/>';
+} else {
+  svgBorders += '<line x1="' + cc1.x.toFixed(1) + '" y1="' + cc1.y.toFixed(1)
+    + '" x2="' + cc2.x.toFixed(1) + '" y2="' + cc2.y.toFixed(1) + '"'
+    + ' stroke="rgba(0,0,0,0.7)" stroke-width="1.5"'
+    + ' pointer-events="none"/>';
+}
+    
+    
   }
 
   // ── Assemble SVG ──────────────────────────────────────────────────────────
@@ -619,7 +634,7 @@ function renderMap() {
   mapEl.innerHTML = '<div id="map-inner">' + svg + '</div>';
 
   var inner = mapEl.querySelector("#map-inner");
-  _renderArmyBadges(inner, territories, points, cells);
+  _renderArmyBadges(inner, territories);
 
   // Tap listeners — voronoi-cell class on both polygons and tap-target circles.
   var svgEl = mapEl.querySelector("svg");
@@ -682,50 +697,57 @@ function _initPinchZoom(viewport, inner) {
   });
 }
 
-function _renderArmyBadges(mapEl, territories, points, cells) {
-  // Remove existing badges.
-  var old = mapEl.querySelectorAll(".army-badge");
-  for (var i = 0; i < old.length; i++) {
-    if (old[i].parentNode) old[i].parentNode.removeChild(old[i]);
-  }
-
+function _renderArmyBadges(mapEl, territories) {
+  // Draw army counts as SVG elements inside the map SVG.
+  // Using SVG avoids all HTML-div pixel-offset bugs — coordinates stay
+  // in viewBox space, so placement is always exact regardless of CSS layout.
   var svgEl = mapEl.querySelector("svg");
   if (!svgEl) return;
-  var rect   = svgEl.getBoundingClientRect();
-  var scaleX = rect.width  / MAP_VIEWBOX_W;
-  var scaleY = rect.height / MAP_VIEWBOX_H;
 
-  // Build id->pointIndex map for centroid lookup.
-  var idToIdx = {};
-  if (points) {
-    for (var pi = 0; pi < points.length; pi++) idToIdx[points[pi].id] = pi;
-  }
+  // Remove any previous badge group.
+  var oldGroup = svgEl.querySelector("#army-badge-group");
+  if (oldGroup) oldGroup.parentNode.removeChild(oldGroup);
+
+  var ns    = "http://www.w3.org/2000/svg";
+  var group = document.createElementNS(ns, "g");
+  group.setAttribute("id", "army-badge-group");
 
   for (var j = 0; j < territories.length; j++) {
     var t     = territories[j];
     var coord = TERRITORY_COORDS[t.id];
     if (!coord) continue;
 
-    // Use the territory's own coordinate directly — it is the Voronoi cell's
-    // seed point, so it is always visually inside its cell.
-    // +12 SVG units places the badge just below the territory name label.
-    var bx = coord.x;
-    var by = coord.y + 12;
+    // Sit the badge directly on the territory coordinate, just below the label.
+    var bx     = coord.x;
+    var by     = coord.y + 14;
+    var colour = t.owner === "neutral" ? "#555050" : (t.ownerColor || "#aaa");
 
-    var badge = document.createElement("div");
-    badge.className   = "army-badge";
-    badge.textContent = t.armies;
-    badge.style.left  = (bx * scaleX) + "px";
-    badge.style.top   = (by * scaleY) + "px";
+    // Small filled circle as background.
+    var circle = document.createElementNS(ns, "circle");
+    circle.setAttribute("cx", bx);
+    circle.setAttribute("cy", by);
+    circle.setAttribute("r",  "8");
+    circle.setAttribute("fill", colour);
+    circle.setAttribute("fill-opacity", "0.9");
+    circle.setAttribute("stroke", "rgba(0,0,0,0.55)");
+    circle.setAttribute("stroke-width", "1.2");
+    circle.setAttribute("pointer-events", "none");
+    group.appendChild(circle);
 
-    if (t.owner !== "neutral") {
-      badge.style.borderColor = t.ownerColorDark || t.ownerColor;
-      badge.style.color       = "#fff";
-      badge.style.background  = t.ownerColor;
-    }
-
-    mapEl.appendChild(badge);
+    // Army count centred in the circle.
+    var text = document.createElementNS(ns, "text");
+    text.setAttribute("x", bx);
+    text.setAttribute("y", by + 3.5);
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("font-size", "9");
+    text.setAttribute("font-weight", "700");
+    text.setAttribute("fill", "#fff");
+    text.setAttribute("pointer-events", "none");
+    text.textContent = t.armies;
+    group.appendChild(text);
   }
+
+  svgEl.appendChild(group);
 }
 
 
