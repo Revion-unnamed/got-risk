@@ -126,41 +126,189 @@ var REGION_LABEL_COLOURS = {
   "dorne":            "#b46414"
 };
 
-function _buildRegionBlobs() {
-  var html = "";
-  var regionIds = Object.keys(REGIONS);
-  for (var r = 0; r < regionIds.length; r++) {
-    var regionId   = regionIds[r];
-    var region     = REGIONS[regionId];
-    var fillColour = REGION_COLOURS[regionId] || "rgba(120,120,120,0.10)";
-    var lblColour  = REGION_LABEL_COLOURS[regionId] || "#888";
-    var coords = [];
-    for (var t = 0; t < region.territories.length; t++) {
-      var coord = TERRITORY_COORDS[region.territories[t]];
-      if (coord) coords.push(coord);
-    }
-    if (coords.length === 0) continue;
-    var minX =  999, minY =  999, maxX = -999, maxY = -999;
-    for (var c = 0; c < coords.length; c++) {
-      if (coords[c].x < minX) minX = coords[c].x;
-      if (coords[c].y < minY) minY = coords[c].y;
-      if (coords[c].x > maxX) maxX = coords[c].x;
-      if (coords[c].y > maxY) maxY = coords[c].y;
-    }
-    var PAD = NODE_RADIUS + 8;
-    html += '<rect x="'  + (minX - PAD) + '" y="' + (minY - PAD)
-      + '" width="'  + (maxX - minX + PAD * 2)
-      + '" height="' + (maxY - minY + PAD * 2)
-      + '" rx="14" ry="14"'
-      + ' fill="' + fillColour + '"'
-      + ' stroke="' + lblColour + '" stroke-width="0.8" stroke-opacity="0.4"'
-      + ' pointer-events="none"/>';
-    html += '<text x="' + (minX + (maxX - minX) / 2) + '" y="' + (minY - PAD + 8) + '"'
-      + ' text-anchor="middle" font-size="7" fill="' + lblColour + '"'
-      + ' opacity="0.85" pointer-events="none" font-style="italic">'
-      + region.name + "</text>";
+// _buildRegionBlobs() is no longer used — Voronoi renderMap() handles
+// region boundary highlighting directly. Kept as empty stub so any
+// accidental calls don't throw.
+function _buildRegionBlobs() { return ""; }
+
+
+// =============================================================================
+// VORONOI HELPERS
+// A minimal Bowyer-Watson Delaunay triangulation, used to compute Voronoi
+// cells from TERRITORY_COORDS. No external library needed.
+// =============================================================================
+
+/**
+ * Returns the circumcircle of triangle (a, b, c).
+ * Each point is {x, y}. Returns {cx, cy, r2} (r2 = radius squared).
+ */
+function _circumcircle(a, b, c) {
+  var ax = a.x - c.x, ay = a.y - c.y;
+  var bx = b.x - c.x, by = b.y - c.y;
+  var D  = 2 * (ax * by - ay * bx);
+  if (Math.abs(D) < 1e-10) return null;
+  var ux = (by * (ax*ax + ay*ay) - ay * (bx*bx + by*by)) / D;
+  var uy = (ax * (bx*bx + by*by) - bx * (ax*ax + ay*ay)) / D;
+  var cx = ux + c.x, cy = uy + c.y;
+  var dx = a.x - cx, dy = a.y - cy;
+  return { cx: cx, cy: cy, r2: dx*dx + dy*dy };
+}
+
+/**
+ * Bowyer-Watson Delaunay triangulation.
+ * points = [{x, y, id}, ...]
+ * Returns array of triangles, each = [i, j, k] (indices into points).
+ */
+function _delaunay(points) {
+  var n = points.length;
+  // Super-triangle that contains all points.
+  var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (var i = 0; i < n; i++) {
+    if (points[i].x < minX) minX = points[i].x;
+    if (points[i].y < minY) minY = points[i].y;
+    if (points[i].x > maxX) maxX = points[i].x;
+    if (points[i].y > maxY) maxY = points[i].y;
   }
-  return html;
+  var dx = maxX - minX, dy = maxY - minY;
+  var delta = Math.max(dx, dy) * 10;
+  // Super-triangle vertices appended to points array (indices n, n+1, n+2).
+  var sp = points.concat([
+    { x: minX - delta,       y: minY - delta * 3, id: "__s0" },
+    { x: minX + dx / 2,      y: maxY + delta * 3, id: "__s1" },
+    { x: maxX + delta * 3,   y: minY - delta,     id: "__s2" }
+  ]);
+  var triangles = [[n, n+1, n+2]];
+
+  for (var p = 0; p < n; p++) {
+    var pt = sp[p];
+    var badTri = [];
+    for (var t = 0; t < triangles.length; t++) {
+      var tri = triangles[t];
+      var cc  = _circumcircle(sp[tri[0]], sp[tri[1]], sp[tri[2]]);
+      if (!cc) continue;
+      var ddx = pt.x - cc.cx, ddy = pt.y - cc.cy;
+      if (ddx*ddx + ddy*ddy < cc.r2 + 1e-10) badTri.push(t);
+    }
+    // Find boundary polygon of bad triangles.
+    var polygon = [];
+    for (var b = 0; b < badTri.length; b++) {
+      var bt = triangles[badTri[b]];
+      var edges = [[bt[0],bt[1]],[bt[1],bt[2]],[bt[2],bt[0]]];
+      for (var e = 0; e < 3; e++) {
+        var shared = false;
+        for (var b2 = 0; b2 < badTri.length; b2++) {
+          if (b2 === b) continue;
+          var bt2 = triangles[badTri[b2]];
+          var edges2 = [[bt2[0],bt2[1]],[bt2[1],bt2[2]],[bt2[2],bt2[0]]];
+          for (var e2 = 0; e2 < 3; e2++) {
+            if ((edges[e][0]===edges2[e2][0] && edges[e][1]===edges2[e2][1]) ||
+                (edges[e][0]===edges2[e2][1] && edges[e][1]===edges2[e2][0])) {
+              shared = true; break;
+            }
+          }
+          if (shared) break;
+        }
+        if (!shared) polygon.push(edges[e]);
+      }
+    }
+    // Remove bad triangles.
+    var kept = [];
+    for (var k = 0; k < triangles.length; k++) {
+      var isBad = false;
+      for (var bb = 0; bb < badTri.length; bb++) { if (badTri[bb]===k) { isBad=true; break; } }
+      if (!isBad) kept.push(triangles[k]);
+    }
+    triangles = kept;
+    // Add new triangles from polygon.
+    for (var pg = 0; pg < polygon.length; pg++) {
+      triangles.push([polygon[pg][0], polygon[pg][1], p]);
+    }
+  }
+  // Remove triangles that use super-triangle vertices.
+  var result = [];
+  for (var r = 0; r < triangles.length; r++) {
+    var tr = triangles[r];
+    if (tr[0] < n && tr[1] < n && tr[2] < n) result.push(tr);
+  }
+  return result;
+}
+
+/**
+ * Computes Voronoi cells from a Delaunay triangulation.
+ * Returns a map: pointIndex -> [{x,y}, ...] polygon vertices (unsorted).
+ * Cells are clipped to [0, W] x [0, H].
+ */
+function _voronoiCells(points, triangles, W, H) {
+  var n = points.length;
+  // For each point, collect circumcentres of all triangles it belongs to.
+  var cellCircumcentres = [];
+  for (var i = 0; i < n; i++) cellCircumcentres.push([]);
+
+  for (var t = 0; t < triangles.length; t++) {
+    var tri = triangles[t];
+    var cc  = _circumcircle(points[tri[0]], points[tri[1]], points[tri[2]]);
+    if (!cc) continue;
+    // Clamp circumcentre to viewport.
+    var cx = Math.max(-50, Math.min(W+50, cc.cx));
+    var cy = Math.max(-50, Math.min(H+50, cc.cy));
+    cellCircumcentres[tri[0]].push({x: cx, y: cy});
+    cellCircumcentres[tri[1]].push({x: cx, y: cy});
+    cellCircumcentres[tri[2]].push({x: cx, y: cy});
+  }
+
+  // Sort each cell's vertices by angle around the site point, then clip.
+  var cells = {};
+  for (var i = 0; i < n; i++) {
+    var site = points[i];
+    var verts = cellCircumcentres[i];
+    if (verts.length < 2) continue;
+    // Sort by angle.
+    verts.sort(function(a, b) {
+      return Math.atan2(a.y - site.y, a.x - site.x) -
+             Math.atan2(b.y - site.y, b.x - site.x);
+    });
+    // Clip polygon to viewbox using Sutherland-Hodgman.
+    verts = _clipPolygon(verts, W, H);
+    if (verts.length >= 3) cells[i] = verts;
+  }
+  return cells;
+}
+
+/**
+ * Sutherland-Hodgman polygon clipping to rectangle [0,W]x[0,H].
+ */
+function _clipPolygon(poly, W, H) {
+  function _inside(p, edge) {
+    if (edge === 0) return p.x >= 0;
+    if (edge === 1) return p.x <= W;
+    if (edge === 2) return p.y >= 0;
+    return p.y <= H;
+  }
+  function _intersect(a, b, edge) {
+    var dx = b.x - a.x, dy = b.y - a.y;
+    var t;
+    if (edge === 0)      t = (0   - a.x) / (dx || 1e-10);
+    else if (edge === 1) t = (W   - a.x) / (dx || 1e-10);
+    else if (edge === 2) t = (0   - a.y) / (dy || 1e-10);
+    else                 t = (H   - a.y) / (dy || 1e-10);
+    return { x: a.x + t * dx, y: a.y + t * dy };
+  }
+  var output = poly;
+  for (var edge = 0; edge < 4; edge++) {
+    if (output.length === 0) return [];
+    var input = output; output = [];
+    for (var i = 0; i < input.length; i++) {
+      var cur  = input[i];
+      var prev = input[(i + input.length - 1) % input.length];
+      if (_inside(cur, edge)) {
+        if (!_inside(prev, edge)) output.push(_intersect(prev, cur, edge));
+        output.push(cur);
+      } else if (_inside(prev, edge)) {
+        output.push(_intersect(prev, cur, edge));
+      }
+    }
+  }
+  return output;
 }
 
 var SHORT_NAMES = {
@@ -277,101 +425,203 @@ function renderMap() {
   if (!mapEl) return;
 
   var territories = getTerritoryDisplayData();
-  var svgLines = "";
-  var svgNodes = "";
-  var svgRegions = _buildRegionBlobs();
 
-  // Draw connection lines first (so circles sit on top).
-  var drawn = {};
-  var i, j, t, adjId, key, fc, tc;
-  for (i = 0; i < territories.length; i++) {
-    t  = territories[i];
-    fc = TERRITORY_COORDS[t.id];
-    if (!fc) continue;
-    for (j = 0; j < t.adjacentTo.length; j++) {
-      adjId = t.adjacentTo[j];
-      key   = t.id < adjId ? t.id + "|" + adjId : adjId + "|" + t.id;
-      if (drawn[key]) continue;
-      drawn[key] = true;
-      tc = TERRITORY_COORDS[adjId];
-      if (!tc) continue;
-      svgLines += '<line x1="' + fc.x + '" y1="' + fc.y
-        + '" x2="' + tc.x + '" y2="' + tc.y
-        + '" class="territory-connection"/>';
-    }
+  // ── Build a lookup: id -> territory display data ──────────────────────────
+  var tById = {};
+  for (var ti = 0; ti < territories.length; ti++) tById[territories[ti].id] = territories[ti];
+
+  // ── Build territory->region lookup ────────────────────────────────────────
+  var regionOfTerritory = {};
+  var regionIds = Object.keys(REGIONS);
+  for (var ri = 0; ri < regionIds.length; ri++) {
+    var rTerrs = REGIONS[regionIds[ri]].territories;
+    for (var rti = 0; rti < rTerrs.length; rti++) regionOfTerritory[rTerrs[rti]] = regionIds[ri];
   }
 
-  // Draw territory circles.
-  for (i = 0; i < territories.length; i++) {
-    t = territories[i];
-    var coord = TERRITORY_COORDS[t.id];
-    if (!coord) continue;
+  // ── Gather points in a stable order ───────────────────────────────────────
+  var ids    = Object.keys(TERRITORY_COORDS);
+  var points = [];
+  for (var pi = 0; pi < ids.length; pi++) {
+    var c = TERRITORY_COORDS[ids[pi]];
+    points.push({ x: c.x, y: c.y, id: ids[pi] });
+  }
 
-    var isSelected     = _mapSel.selected    === t.id;
-    var isSource       = _mapSel.source      === t.id;
-    var isAttackable   = _mapSel.attackable.indexOf(t.id)   >= 0;
-    var isManoeuvrable = _mapSel.manoeuvrable.indexOf(t.id) >= 0;
+  // ── Delaunay → Voronoi ────────────────────────────────────────────────────
+  var triangles = _delaunay(points);
+  var cells     = _voronoiCells(points, triangles, MAP_VIEWBOX_W, MAP_VIEWBOX_H);
 
-    var fill        = t.owner === "neutral" ? "#3a3530" : t.ownerColor;
-    var stroke      = "#1a1612";
-    var strokeWidth = 1.5;
-    if (isSelected || isSource) { stroke = "#c9a84c"; strokeWidth = 3; }
+  // ── Build SVG layers ──────────────────────────────────────────────────────
+  var svgFills      = "";   // layer 1: filled cells
+  var svgRegBorders = "";   // layer 2: thick region-boundary edges
+  var svgBorders    = "";   // layer 3: thin inter-territory borders
+  var svgHighlights = "";   // layer 4: selection / attack / manoeuvre overlays
+  var svgLabels     = "";   // layer 5: name + castle/port labels
 
-    // Highlight rings (drawn before the circle so circle sits on top of ring)
-    if (isAttackable) {
-      svgNodes += '<circle cx="' + coord.x + '" cy="' + coord.y
-        + '" r="' + (NODE_RADIUS + 5) + '" class="territory-attackable-ring"/>';
+  // ── Invisible tap targets (one per territory, centred on coord) ───────────
+  var svgTapTargets = "";
+
+  for (var i = 0; i < points.length; i++) {
+    var pt      = points[i];
+    var tid     = pt.id;
+    var tData   = tById[tid];
+    var poly    = cells[i];
+    if (!poly || poly.length < 3) continue;
+
+    var fill        = !tData || tData.owner === "neutral" ? "#2a2520" : tData.ownerColor;
+    var isSelected  = _mapSel.source      === tid;
+    var isAttack    = _mapSel.attackable.indexOf(tid)   >= 0;
+    var isMan       = _mapSel.manoeuvrable.indexOf(tid) >= 0;
+
+    // Slightly darken neutral, lighten owned for contrast.
+    var fillOpacity = tData && tData.owner !== "neutral" ? "0.72" : "1";
+
+    // Build polygon points string.
+    var pts = "";
+    for (var v = 0; v < poly.length; v++) pts += poly[v].x.toFixed(1) + "," + poly[v].y.toFixed(1) + " ";
+
+    // Cell fill.
+    svgFills += '<polygon points="' + pts + '"'
+      + ' fill="' + fill + '" fill-opacity="' + fillOpacity + '"'
+      + ' class="voronoi-cell" data-id="' + tid + '"/>';
+
+    // Highlight overlays.
+    if (isSelected) {
+      svgHighlights += '<polygon points="' + pts + '"'
+        + ' fill="rgba(201,168,76,0.22)" stroke="#c9a84c" stroke-width="3"'
+        + ' stroke-dasharray="6 3" fill-rule="nonzero"'
+        + ' class="territory-selected-ring" pointer-events="none"/>';
     }
-    if (isManoeuvrable) {
-      svgNodes += '<circle cx="' + coord.x + '" cy="' + coord.y
-        + '" r="' + (NODE_RADIUS + 5) + '" class="territory-manoeuvre-ring"/>';
+    if (isAttack) {
+      svgHighlights += '<polygon points="' + pts + '"'
+        + ' fill="rgba(231,76,60,0.18)" stroke="#e74c3c" stroke-width="2.5"'
+        + ' stroke-dasharray="4 4"'
+        + ' class="territory-attackable-ring" pointer-events="none"/>';
     }
-    if (isSelected || isSource) {
-      svgNodes += '<circle cx="' + coord.x + '" cy="' + coord.y
-        + '" r="' + (NODE_RADIUS + 5) + '" class="territory-selected-ring"/>';
-    }
-
-    // Territory circle
-    svgNodes += '<circle'
-      + ' id="node-' + t.id + '"'
-      + ' cx="' + coord.x + '" cy="' + coord.y + '"'
-      + ' r="'  + NODE_RADIUS + '"'
-      + ' fill="' + fill + '"'
-      + ' stroke="' + stroke + '" stroke-width="' + strokeWidth + '"'
-      + ' class="territory-node"'
-      + ' data-id="' + t.id + '"'
-      + '/>';
-
-    // Castle / port badge
-    if (t.hasCastle || t.hasPort) {
-      svgNodes += '<text x="' + coord.x + '" y="' + (coord.y + 4) + '"'
-        + ' text-anchor="middle" font-size="6"'
-        + ' fill="rgba(232,220,200,0.55)" pointer-events="none">'
-        + (t.hasCastle ? "C" : "") + (t.hasPort ? "P" : "")
-        + "</text>";
+    if (isMan) {
+      svgHighlights += '<polygon points="' + pts + '"'
+        + ' fill="rgba(39,174,96,0.15)" stroke="#27ae60" stroke-width="2.5"'
+        + ' stroke-dasharray="4 4"'
+        + ' pointer-events="none"/>';
     }
 
-    // Short name label below circle
-    var label = SHORT_NAMES[t.id] || (t.name.length > 8 ? t.name.slice(0, 7) + "." : t.name);
-    svgNodes += '<text x="' + coord.x + '" y="' + (coord.y + NODE_RADIUS + 9) + '"'
+    // Short name label at centroid.
+    var cx = 0, cy = 0;
+    for (var lv = 0; lv < poly.length; lv++) { cx += poly[lv].x; cy += poly[lv].y; }
+    cx /= poly.length; cy /= poly.length;
+    // Nudge label toward actual coord so it stays visually inside the cell.
+    cx = cx * 0.4 + pt.x * 0.6;
+    cy = cy * 0.4 + pt.y * 0.6;
+
+    // Label anchored directly on the territory's seed coordinate.
+    var labelX = pt.x;
+    var labelY = pt.y + 3;  // slight downward nudge so text sits on the point
+
+    var label = SHORT_NAMES[tid] || (tData ? (tData.name.length > 8 ? tData.name.slice(0,7)+"." : tData.name) : tid);
+    svgLabels += '<text x="' + labelX.toFixed(1) + '" y="' + labelY.toFixed(1) + '"'
       + ' class="territory-label" pointer-events="none">'
-      + label + "</text>";
+      + label + '</text>';
+
+    // Castle / port tiny indicator — sits just above the name.
+    if (tData && (tData.hasCastle || tData.hasPort)) {
+      var badge = (tData.hasCastle ? "⚔" : "") + (tData.hasPort ? "⚓" : "");
+      svgLabels += '<text x="' + labelX.toFixed(1) + '" y="' + (labelY - 9).toFixed(1) + '"'
+        + ' text-anchor="middle" font-size="7" fill="rgba(232,220,200,0.6)" pointer-events="none">'
+        + badge + '</text>';
+    }
+
+    // Large invisible tap target centred on the territory coordinate.
+    svgTapTargets += '<circle cx="' + pt.x + '" cy="' + pt.y + '" r="22"'
+      + ' fill="transparent" data-id="' + tid + '" class="voronoi-cell"/>';
   }
 
+  // ── Region border edges ───────────────────────────────────────────────────
+  // Walk every Delaunay edge. If the two endpoints belong to different regions,
+  // draw the Voronoi dual edge (the shared cell boundary) in the region colour.
+  // We identify shared Voronoi edges as the line between the circumcentres of
+  // the two triangles that share that Delaunay edge.
+
+  // Build triangle circumcentres.
+  var triCC = [];
+  for (var tt = 0; tt < triangles.length; tt++) {
+    var tr = triangles[tt];
+    var cc = _circumcircle(points[tr[0]], points[tr[1]], points[tr[2]]);
+    if (cc) {
+      triCC.push({
+        x: Math.max(-50, Math.min(MAP_VIEWBOX_W+50, cc.cx)),
+        y: Math.max(-50, Math.min(MAP_VIEWBOX_H+50, cc.cy))
+      });
+    } else {
+      triCC.push(null);
+    }
+  }
+
+  // For each Delaunay edge, find the two triangles that share it.
+  // edgeKey -> [triIndex, triIndex]
+  var edgeToTri = {};
+  for (var tt2 = 0; tt2 < triangles.length; tt2++) {
+    var tr2 = triangles[tt2];
+    var edges = [[tr2[0],tr2[1]],[tr2[1],tr2[2]],[tr2[2],tr2[0]]];
+    for (var ee = 0; ee < 3; ee++) {
+      var a = edges[ee][0], b = edges[ee][1];
+      var ek = a < b ? a+"|"+b : b+"|"+a;
+      if (!edgeToTri[ek]) edgeToTri[ek] = [];
+      edgeToTri[ek].push(tt2);
+    }
+  }
+
+  var drawnEdges = {};
+  for (var ek in edgeToTri) {
+    if (drawnEdges[ek]) continue;
+    drawnEdges[ek] = true;
+    var parts   = ek.split("|");
+    var idxA    = parseInt(parts[0], 10);
+    var idxB    = parseInt(parts[1], 10);
+    var idA     = points[idxA] ? points[idxA].id : null;
+    var idB     = points[idxB] ? points[idxB].id : null;
+    if (!idA || !idB) continue;
+    var regA    = regionOfTerritory[idA];
+    var regB    = regionOfTerritory[idB];
+    var tris    = edgeToTri[ek];
+    if (tris.length < 2) continue;
+    var cc1     = triCC[tris[0]];
+    var cc2     = triCC[tris[1]];
+    if (!cc1 || !cc2) continue;
+
+    if (regA !== regB) {
+      // Region border — draw in region colour of both sides (use A's colour).
+      var regColour = REGION_LABEL_COLOURS[regA] || "#888";
+      svgRegBorders += '<line x1="' + cc1.x.toFixed(1) + '" y1="' + cc1.y.toFixed(1)
+        + '" x2="' + cc2.x.toFixed(1) + '" y2="' + cc2.y.toFixed(1) + '"'
+        + ' stroke="' + regColour + '" stroke-width="3" stroke-opacity="0.85"'
+        + ' pointer-events="none"/>';
+    } else {
+      // Same region — thin internal border.
+      svgBorders += '<line x1="' + cc1.x.toFixed(1) + '" y1="' + cc1.y.toFixed(1)
+        + '" x2="' + cc2.x.toFixed(1) + '" y2="' + cc2.y.toFixed(1) + '"'
+        + ' stroke="rgba(0,0,0,0.55)" stroke-width="1"'
+        + ' pointer-events="none"/>';
+    }
+  }
+
+  // ── Assemble SVG ──────────────────────────────────────────────────────────
   var svg = '<svg viewBox="0 0 ' + MAP_VIEWBOX_W + ' ' + MAP_VIEWBOX_H + '"'
     + ' xmlns="http://www.w3.org/2000/svg"'
     + ' id="map-svg" style="width:100%;height:100%;display:block;">'
-    +svgRegions + svgLines + svgNodes
-    + "</svg>";
+    + '<rect width="' + MAP_VIEWBOX_W + '" height="' + MAP_VIEWBOX_H + '" fill="#0f1a24"/>'
+    + svgFills
+    + svgBorders
+    + svgRegBorders
+    + svgHighlights
+    + svgLabels
+    + svgTapTargets
+    + '</svg>';
 
-  // Wrap SVG and badges in a scalable inner div.
   mapEl.innerHTML = '<div id="map-inner">' + svg + '</div>';
 
-  // Army badges go inside map-inner so they scale with the SVG.
   var inner = mapEl.querySelector("#map-inner");
-  _renderArmyBadges(inner, territories);
+  _renderArmyBadges(inner, territories, points, cells);
 
-  // Tap listeners on the SVG.
+  // Tap listeners — voronoi-cell class on both polygons and tap-target circles.
   var svgEl = mapEl.querySelector("svg");
   if (svgEl) {
     svgEl.addEventListener("click", function(e) {
@@ -384,7 +634,6 @@ function renderMap() {
     });
   }
 
-  // Pinch zoom — applied to map-inner so badges scale with the SVG.
   _initPinchZoom(mapEl, inner);
 }
 
@@ -433,7 +682,7 @@ function _initPinchZoom(viewport, inner) {
   });
 }
 
-function _renderArmyBadges(mapEl, territories) {
+function _renderArmyBadges(mapEl, territories, points, cells) {
   // Remove existing badges.
   var old = mapEl.querySelectorAll(".army-badge");
   for (var i = 0; i < old.length; i++) {
@@ -446,20 +695,33 @@ function _renderArmyBadges(mapEl, territories) {
   var scaleX = rect.width  / MAP_VIEWBOX_W;
   var scaleY = rect.height / MAP_VIEWBOX_H;
 
+  // Build id->pointIndex map for centroid lookup.
+  var idToIdx = {};
+  if (points) {
+    for (var pi = 0; pi < points.length; pi++) idToIdx[points[pi].id] = pi;
+  }
+
   for (var j = 0; j < territories.length; j++) {
     var t     = territories[j];
     var coord = TERRITORY_COORDS[t.id];
     if (!coord) continue;
 
+    // Use the territory's own coordinate directly — it is the Voronoi cell's
+    // seed point, so it is always visually inside its cell.
+    // +12 SVG units places the badge just below the territory name label.
+    var bx = coord.x;
+    var by = coord.y + 12;
+
     var badge = document.createElement("div");
     badge.className   = "army-badge";
     badge.textContent = t.armies;
-    badge.style.left  = (coord.x * scaleX) + "px";
-    badge.style.top   = (coord.y * scaleY) + "px";
+    badge.style.left  = (bx * scaleX) + "px";
+    badge.style.top   = (by * scaleY) + "px";
 
     if (t.owner !== "neutral") {
-      badge.style.borderColor = t.ownerColor;
-      badge.style.color       = t.ownerColor;
+      badge.style.borderColor = t.ownerColorDark || t.ownerColor;
+      badge.style.color       = "#fff";
+      badge.style.background  = t.ownerColor;
     }
 
     mapEl.appendChild(badge);
