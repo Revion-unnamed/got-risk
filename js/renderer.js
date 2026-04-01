@@ -23,83 +23,84 @@ var NODE_RADIUS   = 16;
 
 var TERRITORY_COORDS = {
   // ── THE NORTH ──────────────────────────────────
-  "castle-black":    { x: 340, y:  44 },
-  "the-gift":        { x: 420, y:  70 },
-  "skagos":          { x: 516, y:  60 },
-  "karhold":         { x: 476, y: 104 },
-  "the-dreadfort":   { x: 412, y: 136 },
-  "wolfswood":       { x: 240, y: 116 },
-  "winterfell":      { x: 316, y: 164 },
-  "barrowlands":     { x: 208, y: 192 },
-  "stony-shore":     { x: 116, y: 192 },
-  "bear-island":     { x:  76, y: 104 },
-  "widows-watch":    { x: 464, y: 176 },
-  "white-harbour":   { x: 396, y: 216 },
-  "moat-cailin":     { x: 276, y: 236 },
+  "castle-black":    { x: 340, y:  44 }, // No update found in new list
+  "the-gift":        { x: 230, y:  72 },
+  "skagos":          { x: 305, y:  55 },
+  "karhold":         { x: 300, y: 100 },
+  "the-dreadfort":   { x: 270, y: 140 },
+  "wolfswood":       { x: 145, y: 105 },
+  "winterfell":      { x: 185, y: 140 },
+  "barrowlands":     { x: 155, y: 185 },
+  "stony-shore":     { x: 90,  y: 165 },
+  "bear-island":     { x: 62,  y:  68 },
+  "widows-watch":    { x: 310, y: 170 },
+  "white-harbour":   { x: 250, y: 175 },
+  "moat-cailin":     { x: 276, y: 236 }, // No update found in new list
 
   // ── THE IRON ISLANDS ───────────────────────────
-  "pyke":            { x:  56, y: 324 },
-  "great-wyk":       { x:  20, y: 368 },
-  "old-wyk":         { x:  68, y: 380 },
-  "harlaw":          { x: 100, y: 340 },
+  "pyke":            { x: 95,  y: 270 },
+  "great-wyk":       { x: 20,  y: 368 }, // No update found in new list
+  "old-wyk":         { x: 68,  y: 380 }, // No update found in new list
+  "harlaw":          { x: 115, y: 285 },
 
   // ── THE RIVERLANDS ─────────────────────────────
-  "cape-kraken":     { x: 124, y: 292 },
-  "seagard":         { x: 160, y: 328 },
-  "the-twins":       { x: 296, y: 304 },
-  "the-neck":        { x: 240, y: 276 },
-  "riverrun":        { x: 192, y: 392 },
-  "harrenhal":       { x: 316, y: 392 },
-  "maidenpool":      { x: 428, y: 344 },
+  "cape-kraken":     { x: 124, y: 292 }, // No update found in new list
+  "seagard":         { x: 160, y: 328 }, // No update found in new list
+  "the-twins":       { x: 210, y: 255 },
+  "the-neck":        { x: 190, y: 215 },
+  "riverrun":        { x: 185, y: 305 },
+  "harrenhal":       { x: 225, y: 320 },
+  "maidenpool":      { x: 428, y: 344 }, // No update found in new list
 
   // ── THE VALE ───────────────────────────────────
-  "hearts-home":     { x: 504, y: 276 },
-  "the-fingers":     { x: 544, y: 320 },
-  "the-eyrie":       { x: 496, y: 328 },
-  "gulltown":        { x: 536, y: 372 },
+  "hearts-home":     { x: 504, y: 276 }, // No update found in new list
+  "the-fingers":     { x: 310, y: 235 },
+  "the-eyrie":       { x: 290, y: 260 },
+  "gulltown":        { x: 320, y: 290 },
 
   // ── THE WESTERLANDS ────────────────────────────
-  "golden-tooth":    { x: 156, y: 432 },
-  "oxcross":         { x: 216, y: 440 },
-  "casterly-rock":   { x: 124, y: 464 },
-  "lannisport":      { x:  80, y: 492 },
-  "cleganes-keep":   { x: 176, y: 488 },
-  "silverhill":      { x: 132, y: 528 },
+  "golden-tooth":    { x: 145, y: 300 },
+  "oxcross":         { x: 120, y: 315 },
+  "casterly-rock":   { x: 100, y: 335 },
+  "lannisport":      { x: 80,  y: 492 }, // No update found in new list
+  "cleganes-keep":   { x: 176, y: 488 }, // No update found in new list
+  "silverhill":      { x: 145, y: 375 },
 
   // ── THE CROWNLANDS ─────────────────────────────
-  "crackclaw-point": { x: 436, y: 404 },
-  "kings-landing":   { x: 352, y: 464 },
-  "dragonstone":     { x: 452, y: 444 },
-  "blackwater-rush": { x: 324, y: 512 },
+  "crackclaw-point": { x: 285, y: 345 },
+  "kings-landing":   { x: 240, y: 345 },
+  "dragonstone":     { x: 325, y: 345 },
+  "blackwater-rush": { x: 210, y: 365 },
 
   // ── THE REACH ──────────────────────────────────
-  "stoney-sept":     { x: 236, y: 520 },
-  "ashford":         { x: 268, y: 564 },
-  "highgarden":      { x: 196, y: 616 },
-  "oldtown":         { x: 104, y: 732 },
-  "three-towers":    { x:  68, y: 636 },
-  "horn-hill":       { x: 140, y: 692 },
-  "brightwater-keep":{ x: 260, y: 652 },
-  "the-mander":      { x: 164, y: 576 },
-  "seabed-marches":  { x: 108, y: 572 },
+  "stoney-sept":     { x: 236, y: 520 }, // No update found in new list
+  "ashford":         { x: 268, y: 564 }, // No update found in new list
+  "highgarden":      { x: 175, y: 435 },
+  "oldtown":         { x: 120, y: 460 },
+  "three-towers":    { x: 95,  y: 480 },
+  "horn-hill":       { x: 140, y: 692 }, // No update found in new list
+  "brightwater-keep":{ x: 260, y: 652 }, // No update found in new list
+  "the-mander":      { x: 150, y: 415 },
+  "seabed-marches":  { x: 95,  y: 400 }, // Updated using 'searoad_marshes'
 
   // ── THE STORMLANDS ─────────────────────────────
-  "kingswood":       { x: 340, y: 556 },
-  "bronzegate":      { x: 308, y: 592 },
-  "storms-end":      { x: 384, y: 632 },
-  "rainwood":        { x: 352, y: 696 },
-  "lornish-marches": { x: 400, y: 740 },
-  "tarth":           { x: 460, y: 644 },
+  "kingswood":       { x: 255, y: 380 },
+  "bronzegate":      { x: 308, y: 592 }, // No update found in new list
+  "storms-end":      { x: 290, y: 400 },
+  "rainwood":        { x: 275, y: 430 },
+  "lornish-marches": { x: 255, y: 415 }, // Updated using 'dornish_marches'
+  "tarth":           { x: 335, y: 405 },
 
   // ── DORNE ──────────────────────────────────────
-  "red-mountains":   { x: 272, y: 776 },
-  "yronwood":        { x: 348, y: 804 },
-  "the-tor":         { x: 408, y: 812 },
-  "sandstone":       { x: 244, y: 844 },
-  "greenblood":      { x: 312, y: 868 },
-  "planky-town":     { x: 372, y: 860 },
-  "sunspear":        { x: 456, y: 884 }
+  "red-mountains":   { x: 210, y: 455 },
+  "yronwood":        { x: 348, y: 804 }, // No update found in new list
+  "the-tor":         { x: 408, y: 812 }, // No update found in new list
+  "sandstone":       { x: 175, y: 495 },
+  "greenblood":      { x: 230, y: 490 },
+  "planky-town":     { x: 372, y: 860 }, // No update found in new list
+  "sunspear":        { x: 305, y: 495 }
 };
+
 
 
 var REGION_COLOURS = {
