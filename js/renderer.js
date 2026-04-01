@@ -16,90 +16,79 @@
 // Each territory gets an (x, y) position on a 300x500 virtual canvas.
 // North at top, Dorne at bottom, west coast left, east coast right.
 // =============================================================================
-
 var MAP_VIEWBOX_W = 600;
 var MAP_VIEWBOX_H = 1000;
 var NODE_RADIUS   = 16;
 
 var TERRITORY_COORDS = {
   // ── THE NORTH ──────────────────────────────────
-  "castle-black":    { x: 340, y:  44 }, // No update found in new list
-  "the-gift":        { x: 230, y:  72 },
-  "skagos":          { x: 305, y:  55 },
-  "karhold":         { x: 300, y: 100 },
-  "the-dreadfort":   { x: 270, y: 140 },
-  "wolfswood":       { x: 145, y: 105 },
-  "winterfell":      { x: 185, y: 140 },
-  "barrowlands":     { x: 155, y: 185 },
-  "stony-shore":     { x: 90,  y: 165 },
-  "bear-island":     { x: 62,  y:  68 },
-  "widows-watch":    { x: 310, y: 170 },
-  "white-harbour":   { x: 250, y: 175 },
-  "moat-cailin":     { x: 276, y: 236 }, // No update found in new list
+  "castle-black":    { x: 340, y:  45 }, // Top center at the Wall
+  "the-gift":        { x: 362, y:  75 },
+  "skagos":          { x: 475, y:  85 },
+  "karhold":         { x: 440, y: 165 },
+  "the-dreadfort":   { x: 415, y: 250 },
+  "wolfswood":       { x: 222, y: 215 },
+  "winterfell":      { x: 315, y: 275 },
+  "barrowlands":     { x: 235, y: 340 },
+  "stony-shore":     { x: 115, y: 290 },
+  "bear-island":     { x: 188, y: 142 },
+  "widows-watch":    { x: 505, y: 335 },
+  "white-harbour":   { x: 375, y: 375 },
+  "moat-cailin":     { x: 255, y: 435 }, // In the center of the Neck
 
   // ── THE IRON ISLANDS ───────────────────────────
-  "pyke":            { x: 95,  y: 270 },
-  "great-wyk":       { x: 20,  y: 368 }, // No update found in new list
-  "old-wyk":         { x: 68,  y: 380 }, // No update found in new list
-  "harlaw":          { x: 115, y: 285 },
+  "pyke":            { x: 140, y: 530 },
+  "harlaw":          { x: 190, y: 560 },
 
   // ── THE RIVERLANDS ─────────────────────────────
-  "cape-kraken":     { x: 124, y: 292 }, // No update found in new list
-  "seagard":         { x: 160, y: 328 }, // No update found in new list
-  "the-twins":       { x: 210, y: 255 },
-  "the-neck":        { x: 190, y: 215 },
-  "riverrun":        { x: 185, y: 305 },
-  "harrenhal":       { x: 225, y: 320 },
-  "maidenpool":      { x: 428, y: 344 }, // No update found in new list
+  "the-neck":        { x: 255, y: 435 },
+  "the-twins":       { x: 315, y: 485 },
+  "riverrun":        { x: 275, y: 575 },
+  "the-trident":     { x: 325, y: 555 },
+  "harrenhal":       { x: 385, y: 615 },
 
   // ── THE VALE ───────────────────────────────────
-  "hearts-home":     { x: 504, y: 276 }, // No update found in new list
-  "the-fingers":     { x: 310, y: 235 },
-  "the-eyrie":       { x: 290, y: 260 },
-  "gulltown":        { x: 320, y: 290 },
+  "the-fingers":     { x: 445, y: 455 },
+  "the-eyrie":       { x: 505, y: 515 },
+  "gulltown":        { x: 555, y: 585 },
 
   // ── THE WESTERLANDS ────────────────────────────
-  "golden-tooth":    { x: 145, y: 300 },
-  "oxcross":         { x: 120, y: 315 },
-  "casterly-rock":   { x: 100, y: 335 },
-  "lannisport":      { x: 80,  y: 492 }, // No update found in new list
-  "cleganes-keep":   { x: 176, y: 488 }, // No update found in new list
-  "silverhill":      { x: 145, y: 375 },
+  "golden-tooth":    { x: 220, y: 615 },
+  "oxcross":         { x: 170, y: 645 },
+  "casterly-rock":   { x: 140, y: 675 },
+  "lannisport":      { x: 110, y: 715 }, // Labeled as 'Easterly Rock' on this map
+  "cleganes-keep":   { x: 170, y: 645 }, // Shared area with Oxcross
+  "silverhill":      { x: 205, y: 705 },
+  "crakehall":       { x: 145, y: 745 },
 
   // ── THE CROWNLANDS ─────────────────────────────
-  "crackclaw-point": { x: 285, y: 345 },
-  "kings-landing":   { x: 240, y: 345 },
-  "dragonstone":     { x: 325, y: 345 },
-  "blackwater-rush": { x: 210, y: 365 },
+  "crackclaw-point": { x: 485, y: 625 },
+  "kings-landing":   { x: 430, y: 685 },
+  "dragonstone":     { x: 545, y: 675 },
+  "blackwater-rush": { x: 335, y: 705 },
+  "kingswood":       { x: 440, y: 760 },
 
   // ── THE REACH ──────────────────────────────────
-  "stoney-sept":     { x: 236, y: 520 }, // No update found in new list
-  "ashford":         { x: 268, y: 564 }, // No update found in new list
-  "highgarden":      { x: 175, y: 435 },
-  "oldtown":         { x: 120, y: 460 },
-  "three-towers":    { x: 95,  y: 480 },
-  "horn-hill":       { x: 140, y: 692 }, // No update found in new list
-  "brightwater-keep":{ x: 260, y: 652 }, // No update found in new list
-  "the-mander":      { x: 150, y: 415 },
-  "seabed-marches":  { x: 95,  y: 400 }, // Updated using 'searoad_marshes'
+  "highgarden":      { x: 265, y: 855 },
+  "oldtown":         { x: 140, y: 910 },
+  "three-towers":    { x: 160, y: 975 },
+  "the-mander":      { x: 295, y: 795 },
+  "seabed-marches":  { x: 185, y: 800 }, // Searoad Marshes
+  "the-arbor":       { x: 110, y: 980 },
 
   // ── THE STORMLANDS ─────────────────────────────
-  "kingswood":       { x: 255, y: 380 },
-  "bronzegate":      { x: 308, y: 592 }, // No update found in new list
-  "storms-end":      { x: 290, y: 400 },
-  "rainwood":        { x: 275, y: 430 },
-  "lornish-marches": { x: 255, y: 415 }, // Updated using 'dornish_marches'
-  "tarth":           { x: 335, y: 405 },
+  "storms-end":      { x: 510, y: 785 },
+  "rainwood":        { x: 505, y: 860 },
+  "lornish-marches": { x: 395, y: 835 }, // Dornish Marches node
+  "tarth":           { x: 575, y: 810 },
 
   // ── DORNE ──────────────────────────────────────
-  "red-mountains":   { x: 210, y: 455 },
-  "yronwood":        { x: 348, y: 804 }, // No update found in new list
-  "the-tor":         { x: 408, y: 812 }, // No update found in new list
-  "sandstone":       { x: 175, y: 495 },
-  "greenblood":      { x: 230, y: 490 },
-  "planky-town":     { x: 372, y: 860 }, // No update found in new list
-  "sunspear":        { x: 305, y: 495 }
+  "red-mountains":   { x: 340, y: 890 },
+  "sandstone":       { x: 310, y: 980 },
+  "greenblood":      { x: 425, y: 970 },
+  "sunspear":        { x: 555, y: 975 }
 };
+
 
 
 
