@@ -16,77 +16,76 @@
 // Each territory gets an (x, y) position on a 300x500 virtual canvas.
 // North at top, Dorne at bottom, west coast left, east coast right.
 // =============================================================================
-var MAP_VIEWBOX_W = 600;
-var MAP_VIEWBOX_H = 1000;
-var NODE_RADIUS   = 16;
+var MAP_VIEWBOX_W = 800;
+var MAP_VIEWBOX_H = 1190;
+var NODE_RADIUS   = 13;
 
 var TERRITORY_COORDS = {
   // ── THE NORTH ──────────────────────────────────
-  "castle-black":    { x: 340, y:  45 }, // Top center at the Wall
-  "the-gift":        { x: 362, y:  75 },
-  "skagos":          { x: 475, y:  85 },
-  "karhold":         { x: 440, y: 165 },
-  "the-dreadfort":   { x: 415, y: 250 },
-  "wolfswood":       { x: 222, y: 215 },
-  "winterfell":      { x: 315, y: 275 },
-  "barrowlands":     { x: 235, y: 340 },
-  "stony-shore":     { x: 115, y: 290 },
-  "bear-island":     { x: 188, y: 142 },
-  "widows-watch":    { x: 505, y: 335 },
-  "white-harbour":   { x: 375, y: 375 },
-  "moat-cailin":     { x: 255, y: 435 }, // In the center of the Neck
+  "castle-black":    { x: 453, y:  53 },
+  "the-gift":        { x: 482, y:  89 },
+  "skagos":          { x: 633, y: 101 },
+  "karhold":         { x: 586, y: 196 },
+  "the-dreadfort":   { x: 553, y: 297 },
+  "wolfswood":       { x: 296, y: 255 },
+  "winterfell":      { x: 420, y: 327 },
+  "barrowlands":     { x: 313, y: 404 },
+  "stony-shore":     { x: 153, y: 345 },
+  "bear-island":     { x: 250, y: 169 },
+  "widows-watch":    { x: 673, y: 398 },
+  "white-harbour":   { x: 500, y: 446 },
+  "moat-cailin":     { x: 340, y: 517 },
 
   // ── THE IRON ISLANDS ───────────────────────────
-  "pyke":            { x: 140, y: 530 },
-  "harlaw":          { x: 190, y: 560 },
+  "pyke":            { x: 186, y: 630 },
+  "harlaw":          { x: 253, y: 666 },
 
   // ── THE RIVERLANDS ─────────────────────────────
-  "the-neck":        { x: 255, y: 435 },
-  "the-twins":       { x: 315, y: 485 },
-  "riverrun":        { x: 275, y: 575 },
-  "the-trident":     { x: 325, y: 555 },
-  "harrenhal":       { x: 385, y: 615 },
+  "the-neck":        { x: 340, y: 517 },
+  "the-twins":       { x: 420, y: 577 },
+  "riverrun":        { x: 366, y: 684 },
+  "the-trident":     { x: 433, y: 660 },
+  "harrenhal":       { x: 513, y: 731 },
 
   // ── THE VALE ───────────────────────────────────
-  "the-fingers":     { x: 445, y: 455 },
-  "the-eyrie":       { x: 505, y: 515 },
-  "gulltown":        { x: 555, y: 585 },
+  "the-fingers":     { x: 593, y: 541 },
+  "the-eyrie":       { x: 673, y: 612 },
+  "gulltown":        { x: 740, y: 696 },
 
   // ── THE WESTERLANDS ────────────────────────────
-  "golden-tooth":    { x: 220, y: 615 },
-  "oxcross":         { x: 170, y: 645 },
-  "casterly-rock":   { x: 140, y: 675 },
-  "lannisport":      { x: 110, y: 715 }, // Labeled as 'Easterly Rock' on this map
-  "cleganes-keep":   { x: 170, y: 645 }, // Shared area with Oxcross
-  "silverhill":      { x: 205, y: 705 },
-  "crakehall":       { x: 145, y: 745 },
+  "golden-tooth":    { x: 293, y: 731 },
+  "oxcross":         { x: 226, y: 767 },
+  "casterly-rock":   { x: 186, y: 803 },
+  "lannisport":      { x: 146, y: 850 },
+  "silverhill":      { x: 273, y: 838 },
+  "crakehall":       { x: 193, y: 886 },
 
   // ── THE CROWNLANDS ─────────────────────────────
-  "crackclaw-point": { x: 485, y: 625 },
-  "kings-landing":   { x: 430, y: 685 },
-  "dragonstone":     { x: 545, y: 675 },
-  "blackwater-rush": { x: 335, y: 705 },
-  "kingswood":       { x: 440, y: 760 },
+  "crackclaw-point": { x: 646, y: 743 },
+  "kings-landing":   { x: 573, y: 815 },
+  "dragonstone":     { x: 726, y: 803 },
+  "blackwater-rush": { x: 446, y: 838 },
+  "kingswood":       { x: 586, y: 904 },
 
   // ── THE REACH ──────────────────────────────────
-  "highgarden":      { x: 265, y: 855 },
-  "oldtown":         { x: 140, y: 910 },
-  "three-towers":    { x: 160, y: 975 },
-  "the-mander":      { x: 295, y: 795 },
-  "seabed-marches":  { x: 185, y: 800 }, // Searoad Marshes
-  "the-arbor":       { x: 110, y: 980 },
+  "highgarden":      { x: 353, y: 1017 },
+  "oldtown":         { x: 186, y: 1082 },
+  "three-towers":    { x: 213, y: 1160 },
+  "the-mander":      { x: 393, y: 946 },
+  "seabed-marches":  { x: 246, y: 952 },
+  "the-arbor":       { x: 146, y: 1166 },
 
   // ── THE STORMLANDS ─────────────────────────────
-  "storms-end":      { x: 510, y: 785 },
-  "rainwood":        { x: 505, y: 860 },
-  "lornish-marches": { x: 395, y: 835 }, // Dornish Marches node
-  "tarth":           { x: 575, y: 810 },
+  "storms-end":      { x: 680, y: 934 },
+  "rainwood":        { x: 673, y: 1023 },
+  "lornish-marches": { x: 526, y: 993 },
+  "tarth":           { x: 766, y: 963 },
 
   // ── DORNE ──────────────────────────────────────
-  "red-mountains":   { x: 340, y: 890 },
-  "sandstone":       { x: 310, y: 980 },
-  "greenblood":      { x: 425, y: 970 },
-  "sunspear":        { x: 555, y: 975 }
+  "red-mountains":   { x: 453, y: 1059 },
+  "sandstone":       { x: 413, y: 1166 },
+  "greenblood":      { x: 566, y: 1154 },
+  "sunspear":        { x: 740, y: 1160 }
 };
 
 
