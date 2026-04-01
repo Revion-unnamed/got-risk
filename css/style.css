@@ -601,15 +601,14 @@ select:focus {
 }
 
 /* ── Map ── */
-
 .game-map {
-  flex: 1;
+  flex: 0 0 auto;
   width: 100%;
+  height: calc(100dvh - var(--game-status-bar-height) - var(--game-player-bar-height) - var(--game-action-panel-height) - var(--game-log-height));
   position: relative;
   overflow: hidden;
   background: #0f1a24;
-  min-height: 0;
-  touch-action: none;   /* hand all touch events to JS, prevents browser scroll interference */
+  touch-action: none;
 }
 
 #map-inner {
