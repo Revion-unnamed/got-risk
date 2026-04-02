@@ -368,6 +368,30 @@ function _setupGameOverScreen() {
       showScreen("screen-start");
     });
   }
+  var logBtn = container.querySelector("#btn-show-log");
+  if (logBtn) {
+    logBtn.addEventListener("click", function() {
+      var entries = getLog();
+      var logHtml = '<div class="gameover-log-overlay" id="gameover-log-overlay">'
+        + '<div class="gameover-log-header">'
+        + '<h3>Game Log</h3>'
+        + '<button id="btn-close-log" class="btn-icon">✕</button>'
+        + '</div>'
+        + '<div class="gameover-log-body">';
+      for (var i = 0; i < entries.length; i++) {
+        logHtml += '<p class="log-entry">' + entries[i] + '</p>';
+      }
+      logHtml += '</div></div>';
+      document.body.insertAdjacentHTML("beforeend", logHtml);
+      var closeBtn = document.getElementById("btn-close-log");
+      if (closeBtn) {
+        closeBtn.addEventListener("click", function() {
+          var overlay = document.getElementById("gameover-log-overlay");
+          if (overlay) overlay.parentNode.removeChild(overlay);
+        });
+      }
+    });
+  }
 }
 
 function _buildGameOverHTML(scores) {
@@ -393,7 +417,8 @@ function _buildGameOverHTML(scores) {
     + '<div class="score-legend"><span>T=territories</span> <span>C=castles</span> <span>P=ports</span></div>'
     + rows
     + "</div>"
-    + '<button id="btn-play-again" class="btn btn-primary btn-large">Play Again</button>';
+    + '<button id="btn-play-again" class="btn btn-primary btn-large">Play Again</button>',
+     + '<button id="btn-show-log" class="btn btn-secondary">📜 View Game Log</button>';
 }
 
 
