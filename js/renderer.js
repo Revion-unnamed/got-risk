@@ -416,8 +416,7 @@ function renderStatusBar() {
   
   var deckEl = document.getElementById("game-deck-label");
 if (deckEl) {
-  var fullDeckSize = state.deck.length + state.discardPile.length;
-  deckEl.textContent = state.deck.length + "/" + fullDeckSize;
+  deckEl.textContent = state.deck.length + "/" + state.fullDeckSize;
 }
 }
 
