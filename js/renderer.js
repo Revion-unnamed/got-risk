@@ -413,6 +413,12 @@ function renderStatusBar() {
   if (playerEl) playerEl.textContent = house.sigil + " " + player.name;
   if (turnEl)   turnEl.textContent   = "Turn " + state.turnNumber;
   if (bar)      bar.style.borderBottomColor = house.color;
+  
+  var deckEl = document.getElementById("game-deck-label");
+if (deckEl) {
+  var fullDeckSize = state.deck.length + state.discardPile.length;
+  deckEl.textContent = state.deck.length + "/" + fullDeckSize;
+}
 }
 
 
