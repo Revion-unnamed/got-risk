@@ -406,6 +406,12 @@ function _boot() {
     var el = document.getElementById(id);
     if (el) el.style.display = "none";
   });
+  // Request a wake lock so the screen stays on during gameplay.
+  // The Wake Lock API is supported on Android Chrome/WebView (2020+).
+  // We silently ignore errors — the game works fine without it.
+  if (navigator.wakeLock) {
+    navigator.wakeLock.request("screen").catch(function() {});
+  }
   showScreen("screen-start");
 }
 
