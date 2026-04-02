@@ -185,6 +185,13 @@ function _handleReinforceTerritory(territoryId) {
   renderMap();
   renderLog();
   _updateReinforceCounter();
+  // Auto-advance to attack phase when all armies are placed.
+if (_reinforceSession.armiesRemaining === 0) {
+  var result = actionEndReinforce(_reinforceSession);
+  if (!result.success) return;
+  renderGameScreen();
+  _rewire();
+}
 }
 
 
@@ -363,30 +370,26 @@ function _wireCombatAfterRoll(fromId, toId, result) {
 // -----------------------------------------------------------------------------
 // MANOEUVRE PHASE
 // -----------------------------------------------------------------------------
-
 function _rewireManoeuvre(state) {
-  if (state.manoeuvreUsed) {
-    _wireBtn("btn-end-manoeuvre", function() {
-      var result = actionEndManoeuvre();
-      if (!result.success) { _showError(result.error); return; }
-      renderGameScreen();
-      _rewire();
-    });
-    return;
-  }
-
   _wireBtn("btn-skip-manoeuvre", function() {
-    var result = actionEndManoeuvre();
-    if (!result.success) { _showError(result.error); return; }
-    _resetSelection();
-    renderGameScreen();
-    _rewire();
+    var r1 = actionEndManoeuvre();
+    if (!r1.success) { _showError(r1.error); return; }
+    var r2 = actionEndTurn();
+    if (!r2.success) { _showError(r2.error); return; }
+    if (r2.data && r2.data.gameOver) { _handleGameOver(); return; }
+    _doPassPhone();
   });
 
   _wireBtn("btn-end-manoeuvre", function() {
-    // Only enabled after a manoeuvre is confirmed — currently disabled.
+    var r1 = actionEndManoeuvre();
+    if (!r1.success) { _showError(r1.error); return; }
+    var r2 = actionEndTurn();
+    if (!r2.success) { _showError(r2.error); return; }
+    if (r2.data && r2.data.gameOver) { _handleGameOver(); return; }
+    _doPassPhone();
   });
 }
+
 
 function _handleManoeuvreTerritory(territoryId) {
   var state        = getState();
@@ -476,17 +479,17 @@ function _showManoeuvreCountPrompt(state) {
     _rewire();
   });
   _wireBtn("btn-man-confirm", function() {
-    var result = actionManoeuvre(_sel.manoeuvreSource, _sel.manoeuvreTarget, count.val);
-    if (!result.success) { _showError(result.error); return; }
-
-    // Advance to end-manoeuvre state.
-    var endResult = actionEndManoeuvre();
-    if (!endResult.success) { _showError(endResult.error); return; }
-
-    _resetSelection();
-    renderGameScreen();
-    _rewire();
-  });
+  var r1 = actionManoeuvre(_sel.manoeuvreSource, _sel.manoeuvreTarget, count.val);
+  if (!r1.success) { _showError(r1.error); return; }
+  var r2 = actionEndManoeuvre();
+  if (!r2.success) { _showError(r2.error); return; }
+  var r3 = actionEndTurn();
+  if (!r3.success) { _showError(r3.error); return; }
+  if (r3.data && r3.data.gameOver) { _handleGameOver(); return; }
+  _resetSelection();
+  _doPassPhone();
+});
+  
 }
 
 
