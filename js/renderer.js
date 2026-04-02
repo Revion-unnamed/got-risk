@@ -773,13 +773,17 @@ function renderPlayerBar() {
     if (p.isCurrentPlayer) classes += " player-badge-active";
     if (p.isEliminated)    classes += " player-badge-eliminated";
     var borderCol = p.isCurrentPlayer ? p.color : "transparent";
-
+var regionHtml = "";
+    if (p.heldRegions && p.heldRegions.length > 0) {
+      regionHtml = '<span class="player-badge-regions">' + p.heldRegions.join(" ") + "</span>";
+    }
     html += '<div class="' + classes + '" style="border-color:' + borderCol + '">'
       + '<span class="player-badge-sigil">' + p.sigil + "</span>"
       + '<span class="player-badge-name">'
       + (p.name.length > 7 ? p.name.slice(0, 6) + "..." : p.name)
       + "</span>"
-      + '<span class="player-badge-count">' + p.territoriesOwned + " T</span>"
+      + '<span class="player-badge-count">' + p.territoriesOwned + "T 🃏" + p.cardCount + "</span>"
+      + regionHtml
       + "</div>";
   }
 
