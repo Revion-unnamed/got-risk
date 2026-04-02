@@ -38,7 +38,7 @@ function runAITurn(onDone) {
 
 function _aiDoReinforce(onDone) {
   // Force-trade cards if holding 6+.
-  _aiTradeCardsIfNeeded();
+  _aiTradeAllSets();
 
   var session = { armiesRemaining: getReinforceCount() };
 
@@ -220,7 +220,19 @@ function _aiEndTurn(onDone) {
 // =============================================================================
 // HELPERS
 // =============================================================================
-
+// Trade ALL valid sets at the start of reinforce — forced or not.
+// Mirrors what a sensible player would do: cash in everything available.
+function _aiTradeAllSets() {
+  var keepGoing = true;
+  while (keepGoing) {
+    var player = getCurrentPlayer();
+    var sets   = findAllValidCardSets(player.cards);
+    if (sets.length === 0) { keepGoing = false; break; }
+    var session = { armiesRemaining: 0 };
+    var result  = actionTradeCards(sets[0], session);
+    if (!result.success) { keepGoing = false; break; }
+  }
+}
 /**
  * Trade cards automatically if the AI is forced to (6+ cards).
  * Picks the first valid set found.
