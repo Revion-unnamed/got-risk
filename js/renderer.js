@@ -268,7 +268,7 @@ function _voronoiCells(points, triangles, W, H) {
              Math.atan2(b.y - site.y, b.x - site.x);
     });
     // Clip polygon to viewbox using Sutherland-Hodgman.
-    verts = _clipPolygon(verts, W, H);
+    verts = _clipPolygon(verts, W, H), 40;
     if (verts.length >= 3) cells[i] = verts;
   }
   return cells;
@@ -277,20 +277,23 @@ function _voronoiCells(points, triangles, W, H) {
 /**
  * Sutherland-Hodgman polygon clipping to rectangle [0,W]x[0,H].
  */
-function _clipPolygon(poly, W, H) {
+  function _clipPolygon(poly, W, H, margin) {
+  margin = margin || 0;
   function _inside(p, edge) {
-    if (edge === 0) return p.x >= 0;
-    if (edge === 1) return p.x <= W;
-    if (edge === 2) return p.y >= 0;
-    return p.y <= H;
+    if (edge === 0) return p.x >= -margin;
+    if (edge === 1) return p.x <= W + margin;
+    if (edge === 2) return p.y >= -margin;
+    return p.y <= H + margin;
+    
   }
   function _intersect(a, b, edge) {
     var dx = b.x - a.x, dy = b.y - a.y;
     var t;
-    if (edge === 0)      t = (0   - a.x) / (dx || 1e-10);
-    else if (edge === 1) t = (W   - a.x) / (dx || 1e-10);
-    else if (edge === 2) t = (0   - a.y) / (dy || 1e-10);
-    else                 t = (H   - a.y) / (dy || 1e-10);
+    if (edge === 0)      t = (-margin       - a.x) / (dx || 1e-10);
+    else if (edge === 1) t = (W + margin    - a.x) / (dx || 1e-10);
+    else if (edge === 2) t = (-margin       - a.y) / (dy || 1e-10);
+    else                 t = (H + margin    - a.y) / (dy || 1e-10);
+    
     return { x: a.x + t * dx, y: a.y + t * dy };
   }
   var output = poly;
