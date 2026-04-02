@@ -289,7 +289,7 @@ function _aiDoReinforce(onDone) {
       renderMap();
       setTimeout(_placeOne, 50);
     }, 450);
-    
+   }
 
   _placeOne();
 }
