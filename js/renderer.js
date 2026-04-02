@@ -1112,6 +1112,52 @@ function _escHtml(str) {
     .replace(/>/g, "&gt;");
 }
 
+// =============================================================================
+// SECTION 12 — AI ACTION OVERLAYS
+// Brief visual indicators shown during AI turns.
+// =============================================================================
+
+/**
+ * Flashes a small emoji over a territory for `duration` ms then removes it.
+ * emoji  — e.g. "➕" or "⚔️"
+ * color  — background colour (house color for attacks, transparent for reinforce)
+ */
+function showTerritoryOverlay(territoryId, emoji, color, duration) {
+  var mapEl = document.getElementById("game-map");
+  if (!mapEl) return;
+
+  var coord = TERRITORY_COORDS[territoryId];
+  if (!coord) return;
+
+  var svgEl = mapEl.querySelector("svg");
+  if (!svgEl) return;
+  var rect   = svgEl.getBoundingClientRect();
+  var scaleX = rect.width  / MAP_VIEWBOX_W;
+  var scaleY = rect.height / MAP_VIEWBOX_H;
+
+  var el = document.createElement("div");
+  el.className = "ai-overlay-pip";
+  el.textContent = emoji;
+  el.style.left       = (coord.x * scaleX) + "px";
+  el.style.top        = (coord.y * scaleY) + "px";
+  if (color) {
+    el.style.background = color;
+  }
+
+  mapEl.appendChild(el);
+
+  setTimeout(function() {
+    if (el.parentNode) el.parentNode.removeChild(el);
+  }, duration || 500);
+}
+
+function showReinforcePip(territoryId) {
+  showTerritoryOverlay(territoryId, "➕", null, 450);
+}
+
+function showAttackPip(territoryId, houseColor) {
+  showTerritoryOverlay(territoryId, "⚔️", houseColor, 550);
+}
 // Tap handler stubs — inputHandler.js overwrites these after init.
 function handleTerritoryTap(id) {
   console.log("Territory tapped: " + id + " (inputHandler not wired yet)");
