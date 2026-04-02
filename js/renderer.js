@@ -1123,43 +1123,35 @@ function _escHtml(str) {
  * color  — background colour (house color for attacks, transparent for reinforce)
  */
  function showTerritoryOverlay(territoryId, emoji, color, duration) {
-  console.log("showTerritoryOverlay called:", territoryId, emoji);
-
-  var mapEl = document.getElementById("game-map");
-  console.log("mapEl:", mapEl);
-  if (!mapEl) return;
+  var inner = document.querySelector("#game-map #map-inner");
+  if (!inner) return;
 
   var coord = TERRITORY_COORDS[territoryId];
-  console.log("coord:", coord);
   if (!coord) return;
 
-  var inner = mapEl.querySelector("#map-inner") || mapEl;
-  console.log("inner:", inner, "offsetWidth:", inner.offsetWidth, "offsetHeight:", inner.offsetHeight);
-
-  var containerW = inner.offsetWidth  || mapEl.offsetWidth  || MAP_VIEWBOX_W;
-  var containerH = inner.offsetHeight || mapEl.offsetHeight || MAP_VIEWBOX_H;
+  var containerW = inner.offsetWidth  || MAP_VIEWBOX_W;
+  var containerH = inner.offsetHeight || MAP_VIEWBOX_H;
   var scaleX = containerW / MAP_VIEWBOX_W;
   var scaleY = containerH / MAP_VIEWBOX_H;
-  console.log("scaleX:", scaleX, "scaleY:", scaleY);
-  console.log("pip position left:", (coord.x * scaleX), "top:", (coord.y * scaleY));
 
+  // Match army badge position exactly (coord + 14 SVG units for Y)
+  // then shift the pip just above it with a small negative offset.
   var el = document.createElement("div");
-  el.className = "ai-overlay-pip";
-  el.textContent = emoji;
-  el.style.left     = (coord.x * scaleX) + "px";
-  el.style.top      = (coord.y * scaleY) + "px";
+  el.className      = "ai-overlay-pip";
+  el.textContent    = emoji;
   el.style.position = "absolute";
   el.style.zIndex   = "999";
+  el.style.left     = (coord.x * scaleX) + "px";
+  el.style.top      = ((coord.y + 14) * scaleY - 28) + "px";
   if (color) el.style.background = color;
 
   inner.appendChild(el);
-  console.log("pip appended, innerHTML length:", inner.innerHTML.length);
 
   setTimeout(function() {
     if (el.parentNode) el.parentNode.removeChild(el);
-    console.log("pip removed");
   }, duration || 500);
 }
+ 
 
 function showReinforcePip(territoryId) {
   showTerritoryOverlay(territoryId, "➕", null, 450);
