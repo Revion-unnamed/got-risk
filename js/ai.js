@@ -283,11 +283,13 @@ function _aiDoReinforce(onDone) {
 
     var tid = _aiPick(targets);
     actionPlaceReinforcements(tid, 1, session);
-    renderMap();
-    renderLog();
+    showReinforcePip(tid);
 
-    setTimeout(_placeOne, AI_DELAY +450);
-  }
+    setTimeout(function() {
+      renderMap();
+      setTimeout(_placeOne, 50);
+    }, 450);
+    
 
   _placeOne();
 }
