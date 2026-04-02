@@ -119,6 +119,7 @@ function _buildPlayerSetupHTML(count) {
       + '<span class="player-label">Player ' + (i + 1) + "</span>"
       + '<input type="text" class="player-name-input" id="player-name-' + i + '" placeholder="Name (optional)" maxlength="20" />'
       + '<select class="house-select" id="house-select-' + i + '">' + houseOptions + "</select>"
+      + '<label class="ai-toggle-label"><input type="checkbox" class="ai-toggle" id="ai-toggle-' + i + '" /> AI</label>'
       + "</div>";
   }
 
@@ -171,7 +172,11 @@ function _confirmPlayerSetup(container) {
     if (usedHouses[houseId]) return HOUSES[houseId].name + " is chosen twice.";
 
     usedHouses[houseId] = true;
-    players.push({ houseId: houseId, name: rawName || HOUSES[houseId].name, isAI: false });
+    var aiEl  = container.querySelector("#ai-toggle-" + i);
+    var isAI  = aiEl ? aiEl.checked : false;
+    var name  = rawName || HOUSES[houseId].name;
+    if (isAI && !rawName) name = HOUSES[houseId].name + " (AI)";
+    players.push({ houseId: houseId, name: name, isAI: isAI });
   }
 
   _pendingConfig.players = players;
