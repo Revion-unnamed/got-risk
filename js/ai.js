@@ -243,6 +243,7 @@ function _aiTradeAllSets() {
     var result  = actionTradeCards(sets[0], session);
     if (!result.success) { keepGoing = false; break; }
   }
+  renderLog();
 }
 /**
  * Trade cards automatically if the AI is forced to (6+ cards).
