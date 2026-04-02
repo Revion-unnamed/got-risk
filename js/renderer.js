@@ -95,7 +95,7 @@ var TERRITORY_COORDS = {
   "red-mountains":   { x: 272, y: 776 },
   "yronwood":        { x: 348, y: 804 },
   "the-tor":         { x: 408, y: 812 },
-  "sandstone":       { x: 244, y: 844 },
+  "sandstone":       { x: 258, y: 836 },
   "greenblood":      { x: 312, y: 868 },
   "planky-town":     { x: 372, y: 860 },
   "sunspear":        { x: 456, y: 884 }
