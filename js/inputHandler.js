@@ -371,24 +371,17 @@ function _wireCombatAfterRoll(fromId, toId, result) {
 // MANOEUVRE PHASE
 // -----------------------------------------------------------------------------
 function _rewireManoeuvre(state) {
-  _wireBtn("btn-skip-manoeuvre", function() {
-    var r1 = actionEndManoeuvre();
-    if (!r1.success) { _showError(r1.error); return; }
-    var r2 = actionEndTurn();
-    if (!r2.success) { _showError(r2.error); return; }
-    if (r2.data && r2.data.gameOver) { _handleGameOver(); return; }
-    _doPassPhone();
-  });
+  if (state.manoeuvreUsed) return;  // already handled by prompt confirm
 
-  _wireBtn("btn-end-manoeuvre", function() {
-    var r1 = actionEndManoeuvre();
-    if (!r1.success) { _showError(r1.error); return; }
-    var r2 = actionEndTurn();
-    if (!r2.success) { _showError(r2.error); return; }
-    if (r2.data && r2.data.gameOver) { _handleGameOver(); return; }
-    _doPassPhone();
+  _wireBtn("btn-skip-manoeuvre", function() {
+    var result = actionEndManoeuvre();
+    if (!result.success) { _showError(result.error); return; }
+    _resetSelection();
+    renderGameScreen();
+    _rewireDraw();
   });
 }
+
 
 
 function _handleManoeuvreTerritory(territoryId) {
@@ -479,16 +472,15 @@ function _showManoeuvreCountPrompt(state) {
     _rewire();
   });
   _wireBtn("btn-man-confirm", function() {
-  var r1 = actionManoeuvre(_sel.manoeuvreSource, _sel.manoeuvreTarget, count.val);
-  if (!r1.success) { _showError(r1.error); return; }
-  var r2 = actionEndManoeuvre();
-  if (!r2.success) { _showError(r2.error); return; }
-  var r3 = actionEndTurn();
-  if (!r3.success) { _showError(r3.error); return; }
-  if (r3.data && r3.data.gameOver) { _handleGameOver(); return; }
+  var result = actionManoeuvre(_sel.manoeuvreSource, _sel.manoeuvreTarget, count.val);
+  if (!result.success) { _showError(result.error); return; }
+  var endResult = actionEndManoeuvre();
+  if (!endResult.success) { _showError(endResult.error); return; }
   _resetSelection();
-  _doPassPhone();
+  renderGameScreen();
+  _rewireDraw();
 });
+  
   
 }
 
