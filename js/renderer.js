@@ -1161,8 +1161,6 @@ function _escHtml(str) {
   }, duration || 500);
 }
 
-}
-
 function showReinforcePip(territoryId) {
   showTerritoryOverlay(territoryId, "➕", null, 450);
 }
