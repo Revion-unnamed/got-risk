@@ -740,6 +740,12 @@ function getPlayerDisplayData() {
     const castles = owned.filter(([id]) => TERRITORIES[id].hasCastle).length;
     const ports   = owned.filter(([id]) => TERRITORIES[id].hasPort).length;
 
+// Which regions does this player fully control?
+    const ownedSet = new Set(owned.map(([id]) => id));
+    const heldRegions = Object.entries(REGIONS)
+      .filter(([, reg]) => reg.territories.every(function(tid) { return ownedSet.has(tid); }))
+      .map(([, reg]) => reg.name + "(+" + reg.bonus + ")");
+
     return {
       houseId:          player.houseId,
       name:             player.name,
@@ -754,6 +760,7 @@ function getPlayerDisplayData() {
       cardCount:        player.cards.length,
       cardSetsTraded:   player.cardSetsTraded,
       isAI:             player.isAI,
+      heldRegions:      heldRegions,   // e.g. ["The North(+5)", "Dorne(+1)"]
     };
   });
 }
