@@ -72,6 +72,7 @@ function _aiDoReinforce(onDone) {
     actionPlaceReinforcements(tid, 1, session);
     renderMap();
     renderLog();
+    showReinforcePip(tid);
 
     setTimeout(_placeOne, AI_DELAY);
   }
@@ -123,8 +124,13 @@ function _aiDoAttack(onDone) {
     var toId    = _aiPick(targets);
     var maxDice = getMaxAttackDice(fromId);
     var dice    = maxDice;  // always roll max dice when conditions are favourable
-    var result = actionAttack(fromId, toId, dice);
+    var state2  = getState();
+    var hColor  = state2.players[state2.currentPlayerIndex]
+                    ? (HOUSES[state2.players[state2.currentPlayerIndex].houseId] || {}).color : null;
+    var result  = actionAttack(fromId, toId, dice);
+    showAttackPip(toId, hColor);
     renderGameScreen();
+    
 
     if (!result.success) {
       setTimeout(_tryAttack, AI_DELAY);
