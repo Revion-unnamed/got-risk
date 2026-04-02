@@ -153,6 +153,7 @@ function _createInitialState(config) {
 
     // ── Card deck ───────────────────────────────────────────────────────────
     deck: finalDeck,
+    fullDeckSize: finalDeck.length, 
     discardPile: [],
 
     // ── Attack tracking ─────────────────────────────────────────────────────
