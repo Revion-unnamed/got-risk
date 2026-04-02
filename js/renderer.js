@@ -1129,22 +1129,26 @@ function showTerritoryOverlay(territoryId, emoji, color, duration) {
   var coord = TERRITORY_COORDS[territoryId];
   if (!coord) return;
 
-  var svgEl = mapEl.querySelector("svg");
+var inner  = mapEl.querySelector("#map-inner") || mapEl;
+  var svgEl  = inner.querySelector("svg");
   if (!svgEl) return;
-  var rect   = svgEl.getBoundingClientRect();
-  var scaleX = rect.width  / MAP_VIEWBOX_W;
-  var scaleY = rect.height / MAP_VIEWBOX_H;
+
+  // Use the inner container's actual size for scaling.
+  // Falls back to viewBox ratio if layout hasn't painted yet.
+  var containerW = inner.offsetWidth  || mapEl.offsetWidth  || MAP_VIEWBOX_W;
+  var containerH = inner.offsetHeight || mapEl.offsetHeight || MAP_VIEWBOX_H;
+  var scaleX = containerW / MAP_VIEWBOX_W;
+  var scaleY = containerH / MAP_VIEWBOX_H;
 
   var el = document.createElement("div");
   el.className = "ai-overlay-pip";
   el.textContent = emoji;
-  el.style.left       = (coord.x * scaleX) + "px";
-  el.style.top        = (coord.y * scaleY) + "px";
+  el.style.left = (coord.x * scaleX) + "px";
+  el.style.top  = (coord.y * scaleY) + "px";
+  
   if (color) {
     el.style.background = color;
   }
-var inner = mapEl.querySelector("#map-inner") || mapEl;
-  inner.appendChild(el);
 
   setTimeout(function() {
     if (el.parentNode) el.parentNode.removeChild(el);
