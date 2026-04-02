@@ -233,32 +233,45 @@ function _aiEndTurn(onDone) {
 // =============================================================================
 // Trade ALL valid sets at the start of reinforce — forced or not.
 // Mirrors what a sensible player would do: cash in everything available.
-function _aiTradeAllSets() {
+function _aiDoReinforce(onDone) {
+  // One shared session — trade armies and territory armies go into the same pool.
+  var session = { armiesRemaining: getReinforceCount() };
+
+  // Trade all valid sets, adding bonus armies directly into the session.
   var keepGoing = true;
   while (keepGoing) {
     var player = getCurrentPlayer();
     var sets   = findAllValidCardSets(player.cards);
     if (sets.length === 0) { keepGoing = false; break; }
-    var session = { armiesRemaining: 0 };
-    var result  = actionTradeCards(sets[0], session);
+    var result = actionTradeCards(sets[0], session);
     if (!result.success) { keepGoing = false; break; }
+    // session.armiesRemaining is mutated by actionTradeCards — bonus included.
   }
   renderLog();
-}
-/**
- * Trade cards automatically if the AI is forced to (6+ cards).
- * Picks the first valid set found.
- */
-function _aiTradeCardsIfNeeded() {
-  while (mustTradeCards()) {
-    var player   = getCurrentPlayer();
-    var sets     = findAllValidCardSets(player.cards);
-    if (sets.length === 0) break;
-    var session  = { armiesRemaining: 0 };  // armies go into next reinforce calc
-    actionTradeCards(sets[0], session);
-    // session.armiesRemaining is discarded — getReinforceCount() recalcs fresh.
+
+  function _placeOne() {
+    if (session.armiesRemaining <= 0) {
+      var result = actionEndReinforce(session);
+      if (!result.success) { _aiEndTurn(onDone); return; }
+      renderGameScreen();
+      setTimeout(function() { _aiDoAttack(onDone); }, AI_DELAY);
+      return;
+    }
+
+    var targets = getValidReinforceTargets();
+    if (targets.length === 0) { _aiEndTurn(onDone); return; }
+
+    var tid = _aiPick(targets);
+    actionPlaceReinforcements(tid, 1, session);
+    renderMap();
+    renderLog();
+
+    setTimeout(_placeOne, AI_DELAY);
   }
+
+  _placeOne();
 }
+
 
 /**
  * Returns a random element from an array.
