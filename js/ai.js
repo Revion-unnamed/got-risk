@@ -98,14 +98,25 @@ function _aiDoAttack(onDone) {
 
     attacksLeft--;
 
-    var fromId   = _aiPick(sources);
-    var targets  = getValidAttackTargets(fromId);
+    // Only attack from territories with 4+ armies.
+    var state    = getState();
+    var goodSources = sources.filter(function(id) {
+      return state.territories[id] && state.territories[id].armies >= 4;
+    });
+    if (goodSources.length === 0) { _aiEndAttack(onDone); return; }
+
+    var fromId  = _aiPick(goodSources);
+    var fromArmies = state.territories[fromId].armies;
+
+    // Only attack territories with fewer armies than the attacker.
+    var targets = getValidAttackTargets(fromId).filter(function(id) {
+      return state.territories[id] && state.territories[id].armies < fromArmies;
+    });
     if (targets.length === 0) { setTimeout(_tryAttack, AI_DELAY); return; }
 
-    var toId     = _aiPick(targets);
-    var maxDice  = getMaxAttackDice(fromId);
-    var dice     = Math.floor(Math.random() * maxDice) + 1;  // 1 to maxDice
-
+    var toId    = _aiPick(targets);
+    var maxDice = getMaxAttackDice(fromId);
+    var dice    = maxDice;  // always roll max dice when conditions are favourable
     var result = actionAttack(fromId, toId, dice);
     renderGameScreen();
 
