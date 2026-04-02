@@ -1123,34 +1123,43 @@ function _escHtml(str) {
  * color  — background colour (house color for attacks, transparent for reinforce)
  */
  function showTerritoryOverlay(territoryId, emoji, color, duration) {
-  var inner = document.querySelector("#game-map #map-inner");
-  if (!inner) return;
+  var svgEl = document.querySelector("#game-map #map-inner svg");
+  if (!svgEl) return;
 
   var coord = TERRITORY_COORDS[territoryId];
   if (!coord) return;
 
-  var containerW = inner.offsetWidth  || MAP_VIEWBOX_W;
-  var containerH = inner.offsetHeight || MAP_VIEWBOX_H;
-  var scaleX = containerW / MAP_VIEWBOX_W;
-  var scaleY = containerH / MAP_VIEWBOX_H;
+  var ns   = "http://www.w3.org/2000/svg";
 
-  // Match army badge position exactly (coord + 14 SVG units for Y)
-  // then shift the pip just above it with a small negative offset.
-  var el = document.createElement("div");
-  el.className      = "ai-overlay-pip";
-  el.textContent    = emoji;
-  el.style.position = "absolute";
-  el.style.zIndex   = "999";
-  el.style.left     = (coord.x * scaleX) + "px";
-  el.style.top      = ((coord.y + 14) * scaleY - 28) + "px";
-  if (color) el.style.background = color;
+  // Background circle (only if color provided).
+  var circle = null;
+  if (color) {
+    circle = document.createElementNS(ns, "circle");
+    circle.setAttribute("cx", coord.x);
+    circle.setAttribute("cy", coord.y + 14);
+    circle.setAttribute("r", "10");
+    circle.setAttribute("fill", color);
+    circle.setAttribute("fill-opacity", "0.85");
+    circle.setAttribute("pointer-events", "none");
+    svgEl.appendChild(circle);
+  }
 
-  inner.appendChild(el);
+  // Emoji text — sits at same y as army badge, shifted up slightly.
+  var text = document.createElementNS(ns, "text");
+  text.setAttribute("x", coord.x);
+  text.setAttribute("y", coord.y - 2);
+  text.setAttribute("text-anchor", "middle");
+  text.setAttribute("font-size", "14");
+  text.setAttribute("pointer-events", "none");
+  text.textContent = emoji;
+  svgEl.appendChild(text);
 
   setTimeout(function() {
-    if (el.parentNode) el.parentNode.removeChild(el);
+    if (text.parentNode) text.parentNode.removeChild(text);
+    if (circle && circle.parentNode) circle.parentNode.removeChild(circle);
   }, duration || 500);
 }
+ 
  
 
 function showReinforcePip(territoryId) {
