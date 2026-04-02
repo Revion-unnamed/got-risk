@@ -836,8 +836,7 @@ function renderActionPanel() {
 
   } else if (state.phase === "manoeuvre") {
     if (state.manoeuvreUsed) {
-      html = '<p class="action-instructions">Manoeuvre done.</p>'
-        + '<button id="btn-end-manoeuvre" class="btn btn-primary" style="width:100%">End Turn Phase</button>';
+  html = '<p class="action-instructions">Manoeuvre complete — ending turn...</p>';
     } else {
       html = '<p class="action-instructions">Move armies to one adjacent territory (optional)</p>'
         + '<div class="action-btn-row">'
