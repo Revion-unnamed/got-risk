@@ -91,7 +91,20 @@ function _startTurn() {
     return;
   }
 
-  // Initialise the reinforce session for this turn.
+  // Check if the current player is AI — hand off to ai.js if so.
+  var currentPlayer = state.players[state.currentPlayerIndex];
+  if (currentPlayer && currentPlayer.isAI) {
+    _reinforceSession.armiesRemaining = getReinforceCount();
+    renderGameScreen();
+    runAITurn(function(result) {
+      if (result.gameOver) { _handleGameOver(); return; }
+      // After AI turn, go straight to next turn — skip pass-phone for AI.
+      _startTurn();
+    });
+    return;
+  }
+
+  // Human player — initialise session and wire buttons as normal.
   _reinforceSession.armiesRemaining = getReinforceCount();
 
   renderGameScreen();
@@ -200,7 +213,7 @@ function _rewireOccupy(state) {
   var fromT   = state.territories[attack.fromTerritoryId];
   _sel.occupyMin   = attack.attackerDice;
   _sel.occupyMax   = fromT ? fromT.armies - 1 : attack.attackerDice;
-  _sel.occupyCount = _sel.occupyMax;
+  _sel.occupyCount = _sel.occupyMin;
   _updateOccupyCounter();
 
   _wireBtn("btn-occupy-less", function() {
@@ -600,9 +613,14 @@ function _doPassPhone() {
   var state      = getState();
   var nextPlayer = state.players[state.currentPlayerIndex];
 
+  // Skip the pass-phone overlay entirely if the next player is AI.
+  if (nextPlayer && nextPlayer.isAI) {
+    _startTurn();
+    return;
+  }
+
   if (_callbacks.onPassPhone) {
     _callbacks.onPassPhone(nextPlayer.name, function() {
-      // Player confirmed they have the phone — start their turn.
       _startTurn();
     });
   } else {
