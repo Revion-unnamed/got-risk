@@ -220,10 +220,10 @@ function _rewireOccupy(state) {
   var fromT   = state.territories[attack.fromTerritoryId];
   _sel.occupyMin   = attack.attackerDice;
   _sel.occupyMax   = fromT ? fromT.armies - 1 : attack.attackerDice;
-  _sel.occupyCount = _sel.occupyMin;
+  _sel.occupyCount = _sel.occupyMax;
   _updateOccupyCounter();
 
-  _wireBtn("btn-occupy-less", function() {
+  _wireBtn("btn-occupy-less", fuanction() {
     if (_sel.occupyCount > _sel.occupyMin) {
       _sel.occupyCount--;
       _updateOccupyCounter();
