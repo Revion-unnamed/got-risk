@@ -1143,8 +1143,8 @@ function showTerritoryOverlay(territoryId, emoji, color, duration) {
   if (color) {
     el.style.background = color;
   }
-
-  mapEl.appendChild(el);
+var inner = mapEl.querySelector("#map-inner") || mapEl;
+  inner.appendChild(el);
 
   setTimeout(function() {
     if (el.parentNode) el.parentNode.removeChild(el);
