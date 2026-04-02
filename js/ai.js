@@ -56,11 +56,17 @@ function _aiDoReinforce(onDone) {
       return;
     }
 
-    var targets = getValidReinforceTargets();
-    if (targets.length === 0) {
-      _aiEndTurn(onDone);
-      return;
-    }
+  var state   = getState();
+    var currentHouse = state.players[state.currentPlayerIndex].houseId;
+    var targets = getValidReinforceTargets().filter(function(id) {
+      // Only reinforce territories that border at least one enemy — frontline only.
+      return TERRITORIES[id].adjacentTo.some(function(adjId) {
+        return state.territories[adjId] && state.territories[adjId].owner !== currentHouse;
+      });
+    });
+    // Fall back to all owned territories if every territory is surrounded by friendlies.
+    if (targets.length === 0) targets = getValidReinforceTargets();
+    if (targets.length === 0) { _aiEndTurn(onDone); return; }
 
     var tid = _aiPick(targets);
     actionPlaceReinforcements(tid, 1, session);
@@ -184,8 +190,15 @@ function _aiDoManoeuvre(onDone) {
     setTimeout(function() { _aiDoDraw(onDone); }, AI_DELAY);
     return;
   }
-
-  var toId    = _aiPick(targets);
+var currentHouse = getState().players[getState().currentPlayerIndex].houseId;
+  var frontlineTargets = targets.filter(function(id) {
+    // Only move into territories that border at least one enemy.
+    return TERRITORIES[id].adjacentTo.some(function(adjId) {
+      var s = getState();
+      return s.territories[adjId] && s.territories[adjId].owner !== currentHouse;
+    });
+  });
+  var toId = _aiPick(frontlineTargets.length > 0 ? frontlineTargets : targets);
   var state   = getState();
   var fromT   = state.territories[fromId];
   var maxMove = fromT ? fromT.armies - 1 : 1;
