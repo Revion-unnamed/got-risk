@@ -739,7 +739,7 @@ function _renderArmyBadges(mapEl, territories) {
     text.setAttribute("x", bx);
     text.setAttribute("y", by + 3.5);
     text.setAttribute("text-anchor", "middle");
-    text.setAttribute("font-size", "9");
+    text.setAttribute("font-size", "20");
     text.setAttribute("font-weight", "700");
     text.setAttribute("fill", "#fff");
     text.setAttribute("pointer-events", "none");
