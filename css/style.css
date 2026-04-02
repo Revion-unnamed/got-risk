@@ -666,7 +666,7 @@ select:focus {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  min-width: 56px;
+  min-width: 72px;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-md);
   border: 2px solid transparent;
@@ -706,7 +706,16 @@ select:focus {
   font-weight: 700;
   color: var(--color-text);
 }
-
+.player-badge-regions {
+  font-size: 8px;
+  color: var(--color-gold);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.2;
+}
 /* ── Action panel ── */
 
 .game-action-panel {
