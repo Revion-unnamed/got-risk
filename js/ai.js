@@ -128,8 +128,9 @@ function _aiDoAttack(onDone) {
     var hColor  = state2.players[state2.currentPlayerIndex]
                     ? (HOUSES[state2.players[state2.currentPlayerIndex].houseId] || {}).color : null;
     var result  = actionAttack(fromId, toId, dice);
-    showAttackPip(toId, hColor);
     renderGameScreen();
+    showAttackPip(toId, hColor);
+    
     
 
     if (!result.success) {
@@ -285,7 +286,7 @@ function _aiDoReinforce(onDone) {
     renderMap();
     renderLog();
 
-    setTimeout(_placeOne, AI_DELAY);
+    setTimeout(_placeOne, AI_DELAY +450);
   }
 
   _placeOne();
