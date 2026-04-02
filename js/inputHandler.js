@@ -223,7 +223,7 @@ function _rewireOccupy(state) {
   _sel.occupyCount = _sel.occupyMax;
   _updateOccupyCounter();
 
-  _wireBtn("btn-occupy-less", fuanction() {
+  _wireBtn("btn-occupy-less", function() {
     if (_sel.occupyCount > _sel.occupyMin) {
       _sel.occupyCount--;
       _updateOccupyCounter();
