@@ -95,7 +95,7 @@ var TERRITORY_COORDS = {
   "red-mountains":   { x: 272, y: 776 },
   "yronwood":        { x: 348, y: 804 },
   "the-tor":         { x: 408, y: 812 },
-  "sandstone":       { x: 258, y: 836 },
+  "sandstone":       { x: 244, y: 844 },
   "greenblood":      { x: 312, y: 868 },
   "planky-town":     { x: 372, y: 860 },
   "sunspear":        { x: 456, y: 884 }
@@ -268,7 +268,7 @@ function _voronoiCells(points, triangles, W, H) {
              Math.atan2(b.y - site.y, b.x - site.x);
     });
     // Clip polygon to viewbox using Sutherland-Hodgman.
-    verts = _clipPolygon(verts, W, H), 40;
+    verts = _clipPolygon(verts, W, H);
     if (verts.length >= 3) cells[i] = verts;
   }
   return cells;
@@ -277,23 +277,20 @@ function _voronoiCells(points, triangles, W, H) {
 /**
  * Sutherland-Hodgman polygon clipping to rectangle [0,W]x[0,H].
  */
-  function _clipPolygon(poly, W, H, margin) {
-  margin = margin || 0;
+function _clipPolygon(poly, W, H) {
   function _inside(p, edge) {
-    if (edge === 0) return p.x >= -margin;
-    if (edge === 1) return p.x <= W + margin;
-    if (edge === 2) return p.y >= -margin;
-    return p.y <= H + margin;
-    
+    if (edge === 0) return p.x >= 0;
+    if (edge === 1) return p.x <= W;
+    if (edge === 2) return p.y >= 0;
+    return p.y <= H;
   }
   function _intersect(a, b, edge) {
     var dx = b.x - a.x, dy = b.y - a.y;
     var t;
-    if (edge === 0)      t = (-margin       - a.x) / (dx || 1e-10);
-    else if (edge === 1) t = (W + margin    - a.x) / (dx || 1e-10);
-    else if (edge === 2) t = (-margin       - a.y) / (dy || 1e-10);
-    else                 t = (H + margin    - a.y) / (dy || 1e-10);
-    
+    if (edge === 0)      t = (0   - a.x) / (dx || 1e-10);
+    else if (edge === 1) t = (W   - a.x) / (dx || 1e-10);
+    else if (edge === 2) t = (0   - a.y) / (dy || 1e-10);
+    else                 t = (H   - a.y) / (dy || 1e-10);
     return { x: a.x + t * dx, y: a.y + t * dy };
   }
   var output = poly;
@@ -312,6 +309,59 @@ function _voronoiCells(points, triangles, W, H) {
     }
   }
   return output;
+}
+
+/**
+ * Clips a polygon to the half-plane on the side of `site`,
+ * offset `gap` units away from the perpendicular bisector between
+ * `site` and `neighbour`. Used to create visual separation between
+ * non-adjacent (or port-to-port) Voronoi cells.
+ */
+function _clipCellToHalfPlane(poly, site, neighbour, gap) {
+  // Midpoint of the two seeds.
+  var mx = (site.x + neighbour.x) / 2;
+  var my = (site.y + neighbour.y) / 2;
+
+  // Direction from neighbour to site (normal pointing into our cell).
+  var dx = site.x - neighbour.x;
+  var dy = site.y - neighbour.y;
+  var len = Math.sqrt(dx*dx + dy*dy) || 1;
+  var nx = dx / len;
+  var ny = dy / len;
+
+  // Shift the bisector `gap` units toward the neighbour
+  // so our cell is inset by `gap` from the true midpoint.
+  var bx = mx - nx * gap;
+  var by = my - ny * gap;
+
+  // Clip polygon: keep only vertices on the site side of the shifted bisector.
+  // Half-plane: (p - b) · n >= 0
+  function inside(p) {
+    return (p.x - bx) * nx + (p.y - by) * ny >= 0;
+  }
+  function intersect(a, b) {
+    var dx2 = b.x - a.x, dy2 = b.y - a.y;
+    // t where the line crosses the bisector
+    var denom = dx2 * nx + dy2 * ny;
+    if (Math.abs(denom) < 1e-10) return a;
+    var t = ((bx - a.x) * nx + (by - a.y) * ny) / denom;
+    return { x: a.x + t * dx2, y: a.y + t * dy2 };
+  }
+
+  var output = [];
+  for (var i = 0; i < poly.length; i++) {
+    var cur  = poly[i];
+    var prev = poly[(i + poly.length - 1) % poly.length];
+    var cIn  = inside(cur);
+    var pIn  = inside(prev);
+    if (cIn) {
+      if (!pIn) output.push(intersect(prev, cur));
+      output.push(cur);
+    } else if (pIn) {
+      output.push(intersect(prev, cur));
+    }
+  }
+  return output.length >= 3 ? output : poly;
 }
 
 var SHORT_NAMES = {
@@ -382,8 +432,6 @@ function clearMapSelection() {
 // =============================================================================
 
 function renderGameScreen() {
-  var state = getState();
-  if (state.gameOver) return;
   renderStatusBar();
   renderMap();
   renderPlayerBar();
@@ -418,11 +466,6 @@ function renderStatusBar() {
   if (playerEl) playerEl.textContent = house.sigil + " " + player.name;
   if (turnEl)   turnEl.textContent   = "Turn " + state.turnNumber;
   if (bar)      bar.style.borderBottomColor = house.color;
-  
-  var deckEl = document.getElementById("game-deck-label");
-if (deckEl) {
-  deckEl.textContent = state.deck.length + "/" + state.fullDeckSize;
-}
 }
 
 
@@ -460,12 +503,54 @@ function renderMap() {
   var triangles = _delaunay(points);
   var cells     = _voronoiCells(points, triangles, MAP_VIEWBOX_W, MAP_VIEWBOX_H);
 
+  // ── Build id->index lookup ───────────────────────────────────────────────
+  var idToIdx = {};
+  for (var ii = 0; ii < points.length; ii++) idToIdx[points[ii].id] = ii;
+
+  // ── Adjacency gap post-processing ────────────────────────────────────────
+  // For every Delaunay edge where the two territories are NOT adjacent
+  // (or are port-to-port adjacent), clip both cells inward by GAP/2 units
+  // so a 14-unit water channel appears between them.
+  var GAP = 7;   // half of 14 — applied to both sides
+
+  // Collect port-to-port pairs for line drawing later.
+  var portLines = [];
+
+  for (var gi = 0; gi < points.length; gi++) {
+    var gId  = points[gi].id;
+    var gAdj = TERRITORIES[gId] ? TERRITORIES[gId].adjacentTo : [];
+    var gHasPort = TERRITORIES[gId] ? TERRITORIES[gId].hasPort : false;
+
+    for (var gj = gi + 1; gj < points.length; gj++) {
+      var gId2  = points[gj].id;
+      var gAdj2 = TERRITORIES[gId2] ? TERRITORIES[gId2].adjacentTo : [];
+      var gHasPort2 = TERRITORIES[gId2] ? TERRITORIES[gId2].hasPort : false;
+
+      var areAdjacent   = gAdj.indexOf(gId2) >= 0;
+      var bothHavePorts = gHasPort && gHasPort2;
+
+      // Clip if: not adjacent at all, OR adjacent only via port-to-port sea.
+      var shouldClip = !areAdjacent || (areAdjacent && bothHavePorts);
+
+      if (shouldClip && cells[gi] && cells[gj]) {
+        cells[gi] = _clipCellToHalfPlane(cells[gi], points[gi], points[gj], GAP);
+        cells[gj] = _clipCellToHalfPlane(cells[gj], points[gj], points[gi], GAP);
+      }
+
+      // Collect port-to-port connections for drawing sea route lines.
+      if (areAdjacent && bothHavePorts) {
+        portLines.push({ from: points[gi], to: points[gj] });
+      }
+    }
+  }
+
   // ── Build SVG layers ──────────────────────────────────────────────────────
   var svgFills      = "";   // layer 1: filled cells
   var svgRegBorders = "";   // layer 2: thick region-boundary edges
   var svgBorders    = "";   // layer 3: thin inter-territory borders
-  var svgHighlights = "";   // layer 4: selection / attack / manoeuvre overlays
-  var svgLabels     = "";   // layer 5: name + castle/port labels
+  var svgPortLines  = "";   // layer 4: port-to-port sea route lines
+  var svgHighlights = "";   // layer 5: selection / attack / manoeuvre overlays
+  var svgLabels     = "";   // layer 6: name + castle/port labels
 
   // ── Invisible tap targets (one per territory, centred on coord) ───────────
   var svgTapTargets = "";
@@ -597,35 +682,30 @@ function renderMap() {
     var cc2     = triCC[tris[1]];
     if (!cc1 || !cc2) continue;
 
-
     if (regA !== regB) {
-  // Draw two lines, one per side, each nudged 2 units toward its seed.
-  var nudge = 2;
-  var ex = cc2.x - cc1.x, ey = cc2.y - cc1.y;
-  var len = Math.sqrt(ex*ex + ey*ey) || 1;
-  // Perpendicular pointing from edge toward point A's seed.
-  var sA = points[idxA], sB = points[idxB];
-  var mx = (cc1.x + cc2.x) / 2, my = (cc1.y + cc2.y) / 2;
-  var toA = { x: sA.x - mx, y: sA.y - my };
-  var toAlen = Math.sqrt(toA.x*toA.x + toA.y*toA.y) || 1;
-  var nA = { x: toA.x/toAlen * nudge, y: toA.y/toAlen * nudge };
-  var nB = { x: -nA.x, y: -nA.y };
-  var regColourA = REGION_LABEL_COLOURS[regA] || "#888";
-  var regColourB = REGION_LABEL_COLOURS[regB] || "#888";
-  svgRegBorders += '<line x1="'+(cc1.x+nA.x).toFixed(1)+'" y1="'+(cc1.y+nA.y).toFixed(1)
-    +'" x2="'+(cc2.x+nA.x).toFixed(1)+'" y2="'+(cc2.y+nA.y).toFixed(1)+'"'
-    +' stroke="'+regColourA+'" stroke-width="2.5" stroke-opacity="0.9" pointer-events="none"/>';
-  svgRegBorders += '<line x1="'+(cc1.x+nB.x).toFixed(1)+'" y1="'+(cc1.y+nB.y).toFixed(1)
-    +'" x2="'+(cc2.x+nB.x).toFixed(1)+'" y2="'+(cc2.y+nB.y).toFixed(1)+'"'
-    +' stroke="'+regColourB+'" stroke-width="3.5" stroke-opacity="0.9" pointer-events="none"/>';
-} else {
-  svgBorders += '<line x1="' + cc1.x.toFixed(1) + '" y1="' + cc1.y.toFixed(1)
-    + '" x2="' + cc2.x.toFixed(1) + '" y2="' + cc2.y.toFixed(1) + '"'
-    + ' stroke="rgba(0,0,0,0.7)" stroke-width="1.5"'
-    + ' pointer-events="none"/>';
-}
-    
-    
+      // Region border — draw in region colour of both sides (use A's colour).
+      var regColour = REGION_LABEL_COLOURS[regA] || "#888";
+      svgRegBorders += '<line x1="' + cc1.x.toFixed(1) + '" y1="' + cc1.y.toFixed(1)
+        + '" x2="' + cc2.x.toFixed(1) + '" y2="' + cc2.y.toFixed(1) + '"'
+        + ' stroke="' + regColour + '" stroke-width="3" stroke-opacity="0.85"'
+        + ' pointer-events="none"/>';
+    } else {
+      // Same region — thin internal border.
+      svgBorders += '<line x1="' + cc1.x.toFixed(1) + '" y1="' + cc1.y.toFixed(1)
+        + '" x2="' + cc2.x.toFixed(1) + '" y2="' + cc2.y.toFixed(1) + '"'
+        + ' stroke="rgba(0,0,0,0.55)" stroke-width="1"'
+        + ' pointer-events="none"/>';
+    }
+  }
+
+  // ── Port-to-port sea route lines ─────────────────────────────────────────
+  for (var pl = 0; pl < portLines.length; pl++) {
+    var pf = portLines[pl].from;
+    var pt2 = portLines[pl].to;
+    svgPortLines += '<line x1="' + pf.x + '" y1="' + pf.y
+      + '" x2="' + pt2.x + '" y2="' + pt2.y + '"'
+      + ' stroke="rgba(100,160,210,0.55)" stroke-width="1.2"'
+      + ' stroke-dasharray="4 4" pointer-events="none"/>';
   }
 
   // ── Assemble SVG ──────────────────────────────────────────────────────────
@@ -636,6 +716,7 @@ function renderMap() {
     + svgFills
     + svgBorders
     + svgRegBorders
+    + svgPortLines
     + svgHighlights
     + svgLabels
     + svgTapTargets
@@ -749,7 +830,7 @@ function _renderArmyBadges(mapEl, territories) {
     text.setAttribute("x", bx);
     text.setAttribute("y", by + 3.5);
     text.setAttribute("text-anchor", "middle");
-    text.setAttribute("font-size", "20");
+    text.setAttribute("font-size", "9");
     text.setAttribute("font-weight", "700");
     text.setAttribute("fill", "#fff");
     text.setAttribute("pointer-events", "none");
@@ -778,17 +859,13 @@ function renderPlayerBar() {
     if (p.isCurrentPlayer) classes += " player-badge-active";
     if (p.isEliminated)    classes += " player-badge-eliminated";
     var borderCol = p.isCurrentPlayer ? p.color : "transparent";
-var regionHtml = "";
-    if (p.heldRegions && p.heldRegions.length > 0) {
-      regionHtml = '<span class="player-badge-regions">' + p.heldRegions.join(" ") + "</span>";
-    }
+
     html += '<div class="' + classes + '" style="border-color:' + borderCol + '">'
       + '<span class="player-badge-sigil">' + p.sigil + "</span>"
       + '<span class="player-badge-name">'
       + (p.name.length > 7 ? p.name.slice(0, 6) + "..." : p.name)
       + "</span>"
-      + '<span class="player-badge-count">' + p.territoriesOwned + "T 🃏" + p.cardCount + "</span>"
-      + regionHtml
+      + '<span class="player-badge-count">' + p.territoriesOwned + " T</span>"
       + "</div>";
   }
 
@@ -850,7 +927,8 @@ function renderActionPanel() {
 
   } else if (state.phase === "manoeuvre") {
     if (state.manoeuvreUsed) {
-  html = '<p class="action-instructions">Manoeuvre complete — ending turn...</p>';
+      html = '<p class="action-instructions">Manoeuvre done.</p>'
+        + '<button id="btn-end-manoeuvre" class="btn btn-primary" style="width:100%">End Turn Phase</button>';
     } else {
       html = '<p class="action-instructions">Move armies to one adjacent territory (optional)</p>'
         + '<div class="action-btn-row">'
@@ -1114,63 +1192,6 @@ function _escHtml(str) {
     .replace(/>/g, "&gt;");
 }
 
-// =============================================================================
-// SECTION 12 — AI ACTION OVERLAYS
-// Brief visual indicators shown during AI turns.
-// =============================================================================
-
-/**
- * Flashes a small emoji over a territory for `duration` ms then removes it.
- * emoji  — e.g. "➕" or "⚔️"
- * color  — background colour (house color for attacks, transparent for reinforce)
- */
- function showTerritoryOverlay(territoryId, emoji, color, duration) {
-  var svgEl = document.querySelector("#game-map #map-inner svg");
-  if (!svgEl) return;
-
-  var coord = TERRITORY_COORDS[territoryId];
-  if (!coord) return;
-
-  var ns   = "http://www.w3.org/2000/svg";
-
-  // Background circle (only if color provided).
-  var circle = null;
-  if (color) {
-    circle = document.createElementNS(ns, "circle");
-    circle.setAttribute("cx", coord.x);
-    circle.setAttribute("cy", coord.y + 14);
-    circle.setAttribute("r", "10");
-    circle.setAttribute("fill", color);
-    circle.setAttribute("fill-opacity", "0.85");
-    circle.setAttribute("pointer-events", "none");
-    svgEl.appendChild(circle);
-  }
-
-  // Emoji text — sits at same y as army badge, shifted up slightly.
-  var text = document.createElementNS(ns, "text");
-  text.setAttribute("x", coord.x);
-  text.setAttribute("y", coord.y - 2);
-  text.setAttribute("text-anchor", "middle");
-  text.setAttribute("font-size", "14");
-  text.setAttribute("pointer-events", "none");
-  text.textContent = emoji;
-  svgEl.appendChild(text);
-
-  setTimeout(function() {
-    if (text.parentNode) text.parentNode.removeChild(text);
-    if (circle && circle.parentNode) circle.parentNode.removeChild(circle);
-  }, duration || 500);
-}
- 
- 
-
-function showReinforcePip(territoryId) {
-  showTerritoryOverlay(territoryId, "➕", null, 450);
-}
-
-function showAttackPip(territoryId, houseColor) {
-  showTerritoryOverlay(territoryId, "⚔️", houseColor, 550);
-}
 // Tap handler stubs — inputHandler.js overwrites these after init.
 function handleTerritoryTap(id) {
   console.log("Territory tapped: " + id + " (inputHandler not wired yet)");
