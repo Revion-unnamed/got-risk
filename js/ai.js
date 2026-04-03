@@ -89,7 +89,7 @@ function _aiDoReinforce(onDone) {
 
 function _aiDoAttack(onDone) {
   // Decide upfront how many attacks to attempt this turn (0 to 5).
-  var attacksLeft = Math.floor(Math.random() * 6);  // 0–5
+  var attacksLeft = Math.floor(Math.random() * 5 +1);  // 1–5
 
   function _tryAttack() {
     if (attacksLeft <= 0) {
