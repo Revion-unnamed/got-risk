@@ -121,7 +121,9 @@ function _aiDoAttack(onDone) {
     });
     if (targets.length === 0) { setTimeout(_tryAttack, AI_DELAY); return; }
 
-    var toId    = _aiPick(targets);
+    var atkHouse  = getState().players[getState().currentPlayerIndex].houseId;
+    var atkPrio   = _aiGetPriorityRegions(atkHouse);
+    var toId      = _aiWeightedPick(targets, atkPrio.attackTargets, 0.7);
     var maxDice = getMaxAttackDice(fromId);
     var dice    = maxDice;  // always roll max dice when conditions are favourable
     var state2  = getState();
@@ -290,7 +292,9 @@ function _aiDoReinforce(onDone) {
     var targets = getValidReinforceTargets();
     if (targets.length === 0) { _aiEndTurn(onDone); return; }
 
-    var tid = _aiPick(targets);
+    var currentHouse2 = getState().players[getState().currentPlayerIndex].houseId;
+    var priority      = _aiGetPriorityRegions(currentHouse2);
+    var tid           = _aiWeightedPick(targets, priority.reinforceTargets, 0.7);
     actionPlaceReinforcements(tid, 1, session);
     showReinforcePip(tid);
 
@@ -309,4 +313,63 @@ function _aiDoReinforce(onDone) {
  */
 function _aiPick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+/**
+ * Returns a weighted pick from an array.
+ * preferredIds — subset of arr that should be picked with preferredChance (0–1).
+ * If no preferred items exist, falls back to plain random.
+ */
+function _aiWeightedPick(arr, preferredIds, preferredChance) {
+  if (!preferredIds || preferredIds.length === 0) return _aiPick(arr);
+  var preferred = arr.filter(function(id) {
+    return preferredIds.indexOf(id) >= 0;
+  });
+  if (preferred.length === 0) return _aiPick(arr);
+  if (Math.random() < preferredChance) return _aiPick(preferred);
+  return _aiPick(arr);
+}
+
+/**
+ * Returns region IDs where the AI owns more than 50% of territories.
+ * Also returns the incomplete territory IDs in those regions
+ * (owned and unowned) for targeting.
+ */
+function _aiGetPriorityRegions(houseId) {
+  var priority = {
+    reinforceTargets: [],   // owned territories in majority regions (frontline only)
+    attackTargets:    []    // unowned territories in majority regions
+  };
+
+  var state = getState();
+  var regionIds = Object.keys(REGIONS);
+
+  for (var r = 0; r < regionIds.length; r++) {
+    var regionId   = regionIds[r];
+    var region     = REGIONS[regionId];
+    var total      = region.territories.length;
+    var ownedInRegion = region.territories.filter(function(tid) {
+      return state.territories[tid] && state.territories[tid].owner === houseId;
+    });
+    var unownedInRegion = region.territories.filter(function(tid) {
+      return state.territories[tid] && state.territories[tid].owner !== houseId;
+    });
+
+    if (ownedInRegion.length / total > 0.5) {
+      // Reinforce: owned territories in this region that border an enemy.
+      ownedInRegion.forEach(function(tid) {
+        var bordersEnemy = TERRITORIES[tid].adjacentTo.some(function(adjId) {
+          return state.territories[adjId] &&
+                 state.territories[adjId].owner !== houseId;
+        });
+        if (bordersEnemy) priority.reinforceTargets.push(tid);
+      });
+
+      // Attack: unowned territories in this region.
+      unownedInRegion.forEach(function(tid) {
+        priority.attackTargets.push(tid);
+      });
+    }
+  }
+
+  return priority;
 }
