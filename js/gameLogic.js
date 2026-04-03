@@ -601,7 +601,7 @@ function actionDrawCard() {
         data: {
           gameOver: true,
           valarMorghulisTriggered: state.valarMorghulisDrawn,
-          scores: calcSkirmishScores(),
+          scores: getScoreDisplayData(),
         },
       };
     }
