@@ -398,7 +398,9 @@ function _buildGameOverHTML(scores) {
   console.log("buildGameOverHTML scores:", JSON.stringify(scores));
   var medals = ["1st", "2nd", "3rd"];
   var rows = scores.map(function(s, i) {
+    console.log("row", i, "territories:", s.territories, "castles:", s.castles, "ports:", s.ports, "score:", s.score, "sigil:", s.sigil);
     var medal = medals[i] || (i + 1) + "th";
+
     return '<div class="score-row ' + (i === 0 ? "score-winner" : "") + '">'
       + '<span class="score-medal">'  + medal        + "</span>"
       + '<span class="score-sigil">'  + s.sigil      + "</span>"
@@ -418,7 +420,7 @@ function _buildGameOverHTML(scores) {
     + '<div class="score-legend"><span>T=territories</span> <span>C=castles</span> <span>P=ports</span></div>'
     + rows
     + "</div>"
-    + '<button id="btn-play-again" class="btn btn-primary btn-large">Play Again</button>',
+    + '<button id="btn-play-again" class="btn btn-primary btn-large">Play Again</button>'
      + '<button id="btn-show-log" class="btn btn-secondary">📜 View Game Log</button>';
 }
 
