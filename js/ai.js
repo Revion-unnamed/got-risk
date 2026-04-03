@@ -35,50 +35,57 @@ function runAITurn(onDone) {
 // Trade cards if forced, then place all armies one at a time on random
 // owned territories.
 // =============================================================================
-
 function _aiDoReinforce(onDone) {
-  // Force-trade cards if holding 6+.
-  _aiTradeAllSets();
-
+  // One shared session — trade armies and territory armies go into the same pool.
   var session = { armiesRemaining: getReinforceCount() };
+
+  // Trade all valid sets, adding bonus armies directly into the session.
+  var keepGoing = true;
+  while (keepGoing) {
+    var player = getCurrentPlayer();
+    var sets   = findAllValidCardSets(player.cards);
+    if (sets.length === 0) { keepGoing = false; break; }
+    var result = actionTradeCards(sets[0], session);
+    if (!result.success) { keepGoing = false; break; }
+    // session.armiesRemaining is mutated by actionTradeCards — bonus included.
+  }
+  renderLog();
 
   function _placeOne() {
     if (session.armiesRemaining <= 0) {
-      // All placed — end reinforce phase.
       var result = actionEndReinforce(session);
-      if (!result.success) {
-        // Shouldn't happen, but bail gracefully.
-        _aiEndTurn(onDone);
-        return;
-      }
+      if (!result.success) { _aiEndTurn(onDone); return; }
       renderGameScreen();
       setTimeout(function() { _aiDoAttack(onDone); }, AI_DELAY);
       return;
     }
-
-  var state   = getState();
+var state        = getState();
     var currentHouse = state.players[state.currentPlayerIndex].houseId;
-    var targets = getValidReinforceTargets().filter(function(id) {
-      // Only reinforce territories that border at least one enemy — frontline only.
+    var targets      = getValidReinforceTargets().filter(function(id) {
       return TERRITORIES[id].adjacentTo.some(function(adjId) {
-        return state.territories[adjId] && state.territories[adjId].owner !== currentHouse;
+        return state.territories[adjId] &&
+               state.territories[adjId].owner !== currentHouse;
       });
     });
-    // Fall back to all owned territories if every territory is surrounded by friendlies.
     if (targets.length === 0) targets = getValidReinforceTargets();
     if (targets.length === 0) { _aiEndTurn(onDone); return; }
 
-    var tid = _aiPick(targets);
+    var priority = _aiGetPriorityRegions(currentHouse);
+    var tid      = _aiWeightedPick(targets, priority.reinforceTargets, 0.7);
     actionPlaceReinforcements(tid, 1, session);
-    renderMap();
     renderLog();
     showReinforcePip(tid);
+    
 
-    setTimeout(_placeOne, AI_DELAY);
-  }
+    setTimeout(function() {
+      renderMap();
+      setTimeout(_placeOne, 50);
+    }, 450);
+   }
 
   _placeOne();
 }
+
 
 
 // =============================================================================
@@ -264,48 +271,7 @@ function _aiEndTurn(onDone) {
 // =============================================================================
 // Trade ALL valid sets at the start of reinforce — forced or not.
 // Mirrors what a sensible player would do: cash in everything available.
-function _aiDoReinforce(onDone) {
-  // One shared session — trade armies and territory armies go into the same pool.
-  var session = { armiesRemaining: getReinforceCount() };
 
-  // Trade all valid sets, adding bonus armies directly into the session.
-  var keepGoing = true;
-  while (keepGoing) {
-    var player = getCurrentPlayer();
-    var sets   = findAllValidCardSets(player.cards);
-    if (sets.length === 0) { keepGoing = false; break; }
-    var result = actionTradeCards(sets[0], session);
-    if (!result.success) { keepGoing = false; break; }
-    // session.armiesRemaining is mutated by actionTradeCards — bonus included.
-  }
-  renderLog();
-
-  function _placeOne() {
-    if (session.armiesRemaining <= 0) {
-      var result = actionEndReinforce(session);
-      if (!result.success) { _aiEndTurn(onDone); return; }
-      renderGameScreen();
-      setTimeout(function() { _aiDoAttack(onDone); }, AI_DELAY);
-      return;
-    }
-
-    var targets = getValidReinforceTargets();
-    if (targets.length === 0) { _aiEndTurn(onDone); return; }
-
-    var currentHouse2 = getState().players[getState().currentPlayerIndex].houseId;
-    var priority      = _aiGetPriorityRegions(currentHouse2);
-    var tid           = _aiWeightedPick(targets, priority.reinforceTargets, 0.7);
-    actionPlaceReinforcements(tid, 1, session);
-    showReinforcePip(tid);
-
-    setTimeout(function() {
-      renderMap();
-      setTimeout(_placeOne, 50);
-    }, 450);
-   }
-
-  _placeOne();
-}
 
 
 /**
