@@ -124,13 +124,12 @@ function _createInitialState(config) {
   // Build and shuffle the territory card deck.
   // Then find the Valar Morghulis position:
   //   take the bottom half, shuffle in the end-game card, place top half back.
-  const fullDeck = shuffle(buildCardDeck());
-  const midpoint = Math.floor(fullDeck.length / 2);
-  const topHalf = fullDeck.slice(0, midpoint);
-  const bottomHalf = fullDeck.slice(midpoint);
-  bottomHalf.push({ territoryId: null, cardType: "valar-morghulis" });
-  const finalDeck = [...topHalf, ...shuffle(bottomHalf)];
-
+  
+const fullDeck = shuffle(buildCardDeck());
+  const finalDeck = [
+    { territoryId: null, cardType: "valar-morghulis" },
+    ...fullDeck
+  ];
   return {
     // ── Meta ────────────────────────────────────────────────────────────────
     mode: config.mode ?? GAME_MODES.SKIRMISH,
