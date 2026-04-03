@@ -395,6 +395,7 @@ function _setupGameOverScreen() {
 }
 
 function _buildGameOverHTML(scores) {
+  console.log("buildGameOverHTML scores:", JSON.stringify(scores));
   var medals = ["1st", "2nd", "3rd"];
   var rows = scores.map(function(s, i) {
     var medal = medals[i] || (i + 1) + "th";
