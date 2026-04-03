@@ -382,6 +382,8 @@ function clearMapSelection() {
 // =============================================================================
 
 function renderGameScreen() {
+  var state = getState();
+  if (state.gameOver) return;
   renderStatusBar();
   renderMap();
   renderPlayerBar();
