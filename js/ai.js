@@ -225,6 +225,8 @@ var currentHouse = getState().players[getState().currentPlayerIndex].houseId;
 
 function _aiDoDraw(onDone) {
   var state = getState();
+  if (state.gameOver) { onDone({ gameOver: true }); return; }
+
   if (state.players[state.currentPlayerIndex].conqueredThisTurn) {
     var result = actionDrawCard();
     if (result.data && result.data.gameOver) {
@@ -233,11 +235,18 @@ function _aiDoDraw(onDone) {
       return;
     }
   }
+
+  // Check again — drawCard may have triggered end game via elimination.
+  state = getState();
+  if (state.gameOver) { renderGameScreen(); onDone({ gameOver: true }); return; }
+
   renderGameScreen();
   setTimeout(function() { _aiEndTurn(onDone); }, AI_DELAY);
 }
 
 function _aiEndTurn(onDone) {
+  var state = getState();
+  if (state.gameOver) { onDone({ gameOver: true }); return; }
   var result = actionEndTurn();
   renderGameScreen();
   if (result.data && result.data.gameOver) {
