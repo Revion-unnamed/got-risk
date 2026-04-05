@@ -1,0 +1,233 @@
+
+## Map Structure: Regions & Territories
+
+The board has **9 regions** (continents in standard Risk). Each grants a bonus army if fully controlled.
+
+| Region | Bonus | Territories | Color on map |
+|---|---|---|---|
+| The North | 5 | Bear Island, Karhold, The Gift, Skagos, Wolfswood, Winterfell, The Dreadfort, Stony Shore, Barrowlands, White Harbor, Widow's Watch | Grey-green |
+| The Vale of Arryn | 1 | The Fingers, The Eyrie, Gulltown | Teal/green |
+| The Riverlands | 2 | The Twins, Pyke*, Harlaw*, Riverrun, Harrenhal, Mountains of the Moon, The Trident | Blue |
+| The Iron Islands | 1 | Pyke, Harlaw, (2–3 small islands) | Gold/yellow |
+| The Westerlands | 2 | Casterly Rock, Easterly Rock, Golden Tooth, Silverhill, Oxcross, Crakehall, Searoad Marshes | Dark red/maroon |
+| The Crownlands | 2 | King's Landing, Cracklaw Point, Dragonstone, Kingswood, Blackwater Rush | Gold |
+| The Stormlands | 1 | Storm's End, Tarth, Rainwood, Dornish Marches | Olive/tan |
+| The Reach | 4 | Highgarden, Oldtown, Three Towers, The Arbor, Red Mountains, The Mander | Green-grey |
+| Dorne | 1 | Sunspear, Sandstone, Greenblood | Orange-brown |
+
+
+---
+
+## Territory Connections (Adjacency)
+These are the borders that allow attacks/movement. Map them carefully:
+
+```
+// NORTH connections
+Bear Island -- Stony Shore, Wolfswood
+Wolfswood -- Winterfell, The Gift, Stony Shore, Bear Island
+The Gift -- Winterfell, Karhold, Wolfswood, Skagos
+Skagos -- The Gift, Karhold
+Karhold -- The Gift, Skagos, The Dreadfort, White Harbor
+The Dreadfort -- Karhold, Winterfell, White Harbor, Widow's Watch
+Winterfell -- Wolfswood, The Gift, Barrowlands, The Dreadfort
+Barrowlands -- Winterfell, Stony Shore, White Harbor, The Neck*
+Stony Shore -- Bear Island, Wolfswood, Barrowlands
+White Harbor -- Barrowlands, The Dreadfort, Widow's Watch
+Widow's Watch -- White Harbor, The Dreadfort
+
+// VALE connections
+The Fingers -- The Eyrie, Gulltown
+The Eyrie -- The Fingers, Gulltown, Mountains of the Moon
+Gulltown -- The Fingers, The Eyrie
+
+// RIVERLANDS
+The Twins -- The Trident, Mountains of the Moon, The Neck*
+The Trident -- The Twins, Riverrun, Harrenhal, Mountains of the Moon
+Riverrun -- The Trident, Harrenhal, The Golden Tooth
+Harrenhal -- The Trident, Riverrun, King's Landing, Blackwater Rush
+
+// IRON ISLANDS (sea connections to mainland)
+Pyke -- Harlaw (sea), Cape Kraken area on coast
+Harlaw -- Pyke (sea)
+
+// WESTERLANDS
+Casterly Rock -- Oxcross, Golden Tooth, Crakehall, Easterly Rock
+Golden Tooth -- Casterly Rock, Riverrun, Oxcross
+Easterly Rock -- Casterly Rock, Crakehall, Searoad Marshes
+Oxcross -- Casterly Rock, Golden Tooth
+Crakehall -- Casterly Rock, Easterly Rock, Searoad Marshes, Silverhill
+Silverhill -- Crakehall, Searoad Marshes
+Searoad Marshes -- Crakehall, Silverhill, Easterly Rock, The Mander
+
+// CROWNLANDS
+King's Landing -- Harrenhal, Cracklaw Point, Kingswood, Blackwater Rush
+Blackwater Rush -- King's Landing, Kingswood, Harrenhal
+Cracklaw Point -- King's Landing, Dragonstone (sea)
+Dragonstone -- Cracklaw Point (sea), Storm's End (sea)
+Kingswood -- King's Landing, Blackwater Rush, Dornish Marches, Storm's End
+
+// STORMLANDS
+Storm's End -- Kingswood, Dornish Marches, Rainwood, Tarth (sea)
+Tarth -- Storm's End (sea)
+Rainwood -- Storm's End, Dornish Marches
+Dornish Marches -- Kingswood, Storm's End, Rainwood, Red Mountains
+
+// REACH
+Highgarden -- The Mander, Oldtown, Red Mountains
+The Mander -- Highgarden, Searoad Marshes, Oldtown
+Oldtown -- Highgarden, The Mander, Three Towers
+Three Towers -- Oldtown, The Arbor (sea)
+The Arbor -- Three Towers (sea)
+Red Mountains -- Highgarden, Dornish Marches, Sandstone, Greenblood
+
+// DORNE
+Sunspear -- Greenblood, Sandstone
+Greenblood -- Sunspear, Sandstone, Red Mountains
+Sandstone -- Sunspear, Greenblood, Red Mountains
+```
+
+---
+
+
+## Territory Hit Zones (approximate centres for click circles)
+
+
+Approximate pixel coordinates on the 360×535 image:
+
+```js
+const territories = [
+  // THE NORTH
+  { id: "bear_island",    name: "Bear Island",    cx: 62,  cy: 68,  region: "north" },
+  { id: "wolfswood",      name: "Wolfswood",      cx: 145, cy: 105, region: "north" },
+  { id: "the_gift",       name: "The Gift",       cx: 230, cy: 72,  region: "north" },
+  { id: "skagos",         name: "Skagos",         cx: 305, cy: 55,  region: "north" },
+  { id: "karhold",        name: "Karhold",        cx: 300, cy: 100, region: "north" },
+  { id: "winterfell",     name: "Winterfell",     cx: 185, cy: 140, region: "north" },
+  { id: "the_dreadfort",  name: "The Dreadfort",  cx: 270, cy: 140, region: "north" },
+  { id: "stony_shore",    name: "Stony Shore",    cx: 90,  cy: 165, region: "north" },
+  { id: "barrowlands",    name: "Barrowlands",    cx: 155, cy: 185, region: "north" },
+  { id: "white_harbor",   name: "White Harbor",   cx: 250, cy: 175, region: "north" },
+  { id: "widows_watch",   name: "Widow's Watch",  cx: 310, cy: 170, region: "north" },
+
+  // THE VALE
+  { id: "the_fingers",    name: "The Fingers",    cx: 310, cy: 235, region: "vale" },
+  { id: "the_eyrie",      name: "The Eyrie",      cx: 290, cy: 260, region: "vale" },
+  { id: "gulltown",       name: "Gulltown",       cx: 320, cy: 290, region: "vale" },
+
+  // THE RIVERLANDS
+  { id: "the_neck",       name: "The Neck",       cx: 190, cy: 215, region: "riverlands" },
+  { id: "the_twins",      name: "The Twins",      cx: 210, cy: 255, region: "riverlands" },
+  { id: "mountains_moon", name: "Mtns of Moon",   cx: 255, cy: 245, region: "riverlands" },
+  { id: "the_trident",    name: "The Trident",    cx: 215, cy: 285, region: "riverlands" },
+  { id: "riverrun",       name: "Riverrun",       cx: 185, cy: 305, region: "riverlands" },
+  { id: "harrenhal",      name: "Harrenhal",      cx: 225, cy: 320, region: "riverlands" },
+
+  // IRON ISLANDS
+  { id: "pyke",           name: "Pyke",           cx: 95,  cy: 270, region: "iron_islands" },
+  { id: "harlaw",         name: "Harlaw",         cx: 115, cy: 285, region: "iron_islands" },
+
+  // WESTERLANDS
+  { id: "golden_tooth",   name: "Golden Tooth",   cx: 145, cy: 300, region: "westerlands" },
+  { id: "oxcross",        name: "Oxcross",        cx: 120, cy: 315, region: "westerlands" },
+  { id: "casterly_rock",  name: "Casterly Rock",  cx: 100, cy: 335, region: "westerlands" },
+  { id: "easterly_rock",  name: "Easterly Rock",  cx: 85,  cy: 355, region: "westerlands" },
+  { id: "crakehall",      name: "Crakehall",      cx: 110, cy: 370, region: "westerlands" },
+  { id: "silverhill",     name: "Silverhill",     cx: 145, cy: 375, region: "westerlands" },
+  { id: "searoad_marshes",name: "Searoad Marshes", cx: 95, cy: 400, region: "westerlands" },
+
+  // CROWNLANDS
+  { id: "blackwater_rush",name: "Blackwater Rush", cx: 210, cy: 365, region: "crownlands" },
+  { id: "kings_landing",  name: "King's Landing", cx: 240, cy: 345, region: "crownlands" },
+  { id: "cracklaw_point", name: "Cracklaw Point", cx: 285, cy: 345, region: "crownlands" },
+  { id: "dragonstone",    name: "Dragonstone",    cx: 325, cy: 345, region: "crownlands" },
+  { id: "kingswood",      name: "Kingswood",      cx: 255, cy: 380, region: "crownlands" },
+
+  // STORMLANDS
+  { id: "dornish_marches",name: "Dornish Marches", cx: 255, cy: 415, region: "stormlands" },
+  { id: "storms_end",     name: "Storm's End",    cx: 290, cy: 400, region: "stormlands" },
+  { id: "rainwood",       name: "Rainwood",       cx: 275, cy: 430, region: "stormlands" },
+  { id: "tarth",          name: "Tarth",          cx: 335, cy: 405, region: "stormlands" },
+
+  // THE REACH
+  { id: "the_mander",     name: "The Mander",     cx: 150, cy: 415, region: "reach" },
+  { id: "highgarden",     name: "Highgarden",     cx: 175, cy: 435, region: "reach" },
+  { id: "red_mountains",  name: "Red Mountains",  cx: 210, cy: 455, region: "reach" },
+  { id: "oldtown",        name: "Oldtown",        cx: 120, cy: 460, region: "reach" },
+  { id: "three_towers",   name: "Three Towers",   cx: 95,  cy: 480, region: "reach" },
+  { id: "the_arbor",      name: "The Arbor",      cx: 70,  cy: 510, region: "reach" },
+
+  // DORNE
+  { id: "sandstone",      name: "Sandstone",      cx: 175, cy: 495, region: "dorne" },
+  { id: "greenblood",     name: "Greenblood",     cx: 230, cy: 490, region: "dorne" },
+  { id: "sunspear",       name: "Sunspear",       cx: 305, cy: 495, region: "dorne" },
+];
+```
+
+> ⚠️ **These coordinates are approximate.** After placing the image, visually verify each circle aligns with the territory label on the map. Adjust cx/cy values as needed — expect to fine-tune ~10px on most territories.
+
+```js
+function renderTroopMarker(territory, count, ownerColor) {
+  return `
+    <g class="troop-marker" data-id="${territory.id}">
+      <!-- Tap target (invisible) -->
+      <circle 
+        cx="${territory.cx}" cy="${territory.cy}" r="18"
+        fill="${regionColors[territory.region]}" 
+        fill-opacity="0"
+        stroke="none"
+        class="territory-hit"
+        data-id="${territory.id}"
+      />
+      <!-- Troop badge -->
+      <circle cx="${territory.cx}" cy="${territory.cy}" r="11" 
+        fill="${ownerColor}" stroke="white" stroke-width="1.5"/>
+      <text x="${territory.cx}" y="${territory.cy + 4}" 
+        text-anchor="middle" font-size="10" 
+        fill="white" font-weight="bold" 
+        font-family="sans-serif">${count}</text>
+    </g>
+  `;
+}
+```
+
+---
+
+
+## Region Bonus Summary (for your game logic)
+
+```js
+const regionBonuses = {
+  north:        5,
+  vale:         1,
+  riverlands:   2,
+  iron_islands: 1,
+  westerlands:  2,
+  crownlands:   2,
+  stormlands:   1,
+  reach:        4,
+  dorne:        1,
+};
+```
+
+---
+
+## Integration Checklist for Second Claude
+
+1. [ ] Place `got_risk_map_360.jpg` in the same directory as your HTML file
+2. [ ] Remove the existing placeholder SVG map element
+3. [ ] Add the `<div id="map-container">` with image + SVG overlay (see above)
+4. [ ] Replace hardcoded territory list with the `territories` array above
+5. [ ] Replace hardcoded adjacency/connections with the connections list above
+6. [ ] Replace region bonus values with `regionBonuses` above
+7. [ ] Wire `handleTerritoryClick(id)` to existing game logic
+8. [ ] Use `renderTroopMarker()` in your render loop
+9. [ ] Test tap targets on a real 360px Android viewport — fine-tune cx/cy if circles are off
+10. [ ] Optionally: add a `selected` state that sets `fill-opacity="0.4"` on the hit circle
+
+---
+
+## Notes
+
+- The map scrolls vertically (535px tall on a 360px screen) — ensure `overflow-y: scroll` on the container or page
+- Sea connections (Dragonstone ↔ Cracklaw Point, Tarth ↔ Storm's End, Iron Islands ↔ coast) are valid attack routes — flag them with `sea: true` in your adjacency list if your game differentiates
+- The Reinforcement Chart in the bottom-left corner of the image (showing troop icons) can be hidden behind a UI panel or cropped if distracting
