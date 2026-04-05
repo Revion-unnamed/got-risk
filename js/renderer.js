@@ -95,7 +95,7 @@ var TERRITORY_COORDS = {
   "red-mountains":   { x: 272, y: 776 },
   "yronwood":        { x: 348, y: 804 },
   "the-tor":         { x: 408, y: 812 },
-  "sandstone":       { x: 244, y: 844 },
+  "sandstone":       { x: 258, y: 836 },
   "greenblood":      { x: 312, y: 868 },
   "planky-town":     { x: 372, y: 860 },
   "sunspear":        { x: 456, y: 884 }
@@ -268,7 +268,7 @@ function _voronoiCells(points, triangles, W, H) {
              Math.atan2(b.y - site.y, b.x - site.x);
     });
     // Clip polygon to viewbox using Sutherland-Hodgman.
-    verts = _clipPolygon(verts, W, H);
+    verts = _clipPolygon(verts, W, H, 40);
     if (verts.length >= 3) cells[i] = verts;
   }
   return cells;
@@ -277,20 +277,21 @@ function _voronoiCells(points, triangles, W, H) {
 /**
  * Sutherland-Hodgman polygon clipping to rectangle [0,W]x[0,H].
  */
-function _clipPolygon(poly, W, H) {
+function _clipPolygon(poly, W, H, margin) {
+  margin = margin || 0;
   function _inside(p, edge) {
-    if (edge === 0) return p.x >= 0;
-    if (edge === 1) return p.x <= W;
-    if (edge === 2) return p.y >= 0;
-    return p.y <= H;
+    if (edge === 0) return p.x >= -margin;
+    if (edge === 1) return p.x <= W + margin;
+    if (edge === 2) return p.y >= -margin;
+    return p.y <= H + margin;
   }
   function _intersect(a, b, edge) {
     var dx = b.x - a.x, dy = b.y - a.y;
     var t;
-    if (edge === 0)      t = (0   - a.x) / (dx || 1e-10);
-    else if (edge === 1) t = (W   - a.x) / (dx || 1e-10);
-    else if (edge === 2) t = (0   - a.y) / (dy || 1e-10);
-    else                 t = (H   - a.y) / (dy || 1e-10);
+    if (edge === 0)      t = (-margin        - a.x) / (dx || 1e-10);
+    else if (edge === 1) t = (W + margin     - a.x) / (dx || 1e-10);
+    else if (edge === 2) t = (-margin        - a.y) / (dy || 1e-10);
+    else                 t = (H + margin     - a.y) / (dy || 1e-10);
     return { x: a.x + t * dx, y: a.y + t * dy };
   }
   var output = poly;
@@ -432,6 +433,8 @@ function clearMapSelection() {
 // =============================================================================
 
 function renderGameScreen() {
+  var state = getState();
+  if (state.gameOver) return;
   renderStatusBar();
   renderMap();
   renderPlayerBar();
@@ -466,6 +469,11 @@ function renderStatusBar() {
   if (playerEl) playerEl.textContent = house.sigil + " " + player.name;
   if (turnEl)   turnEl.textContent   = "Turn " + state.turnNumber;
   if (bar)      bar.style.borderBottomColor = house.color;
+
+  var deckEl = document.getElementById("game-deck-label");
+  if (deckEl) {
+    deckEl.textContent = state.deck.length + "/" + state.fullDeckSize;
+  }
 }
 
 
@@ -664,6 +672,11 @@ function renderMap() {
     }
   }
 
+  // svgGaps: thick dark lines drawn over the actual shared Voronoi edge
+  // between non-adjacent territories, creating a visible water channel.
+  // Drawn AFTER fills so they paint over the seam exactly.
+  var svgGaps = "";
+
   var drawnEdges = {};
   for (var ek in edgeToTri) {
     if (drawnEdges[ek]) continue;
@@ -681,6 +694,24 @@ function renderMap() {
     var cc1     = triCC[tris[0]];
     var cc2     = triCC[tris[1]];
     if (!cc1 || !cc2) continue;
+
+    // Check adjacency between these two territories.
+    var adjA       = TERRITORIES[idA] ? TERRITORIES[idA].adjacentTo : [];
+    var areAdjacent = adjA.indexOf(idB) >= 0;
+    var portA      = TERRITORIES[idA] ? TERRITORIES[idA].hasPort : false;
+    var portB      = TERRITORIES[idB] ? TERRITORIES[idB].hasPort : false;
+    var portToPort = areAdjacent && portA && portB;
+
+    if (!areAdjacent || portToPort) {
+      // Non-adjacent or port-to-port — overdraw with a thick dark gap line
+      // along the actual shared Voronoi edge (cc1→cc2).
+      // stroke-width 14 creates the water channel feel.
+      svgGaps += '<line x1="' + cc1.x.toFixed(1) + '" y1="' + cc1.y.toFixed(1)
+        + '" x2="' + cc2.x.toFixed(1) + '" y2="' + cc2.y.toFixed(1) + '"'
+        + ' stroke="#0f1a24" stroke-width="14" stroke-linecap="round"'
+        + ' pointer-events="none"/>';
+      continue;  // don't draw a border line for this edge
+    }
 
     if (regA !== regB) {
       // Region border — draw in region colour of both sides (use A's colour).
@@ -714,6 +745,7 @@ function renderMap() {
     + ' id="map-svg" style="width:100%;height:100%;display:block;">'
     + '<rect width="' + MAP_VIEWBOX_W + '" height="' + MAP_VIEWBOX_H + '" fill="#0f1a24"/>'
     + svgFills
+    + svgGaps
     + svgBorders
     + svgRegBorders
     + svgPortLines
@@ -830,7 +862,7 @@ function _renderArmyBadges(mapEl, territories) {
     text.setAttribute("x", bx);
     text.setAttribute("y", by + 3.5);
     text.setAttribute("text-anchor", "middle");
-    text.setAttribute("font-size", "9");
+    text.setAttribute("font-size", "20");
     text.setAttribute("font-weight", "700");
     text.setAttribute("fill", "#fff");
     text.setAttribute("pointer-events", "none");
@@ -1191,6 +1223,59 @@ function _escHtml(str) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
+
+// =============================================================================
+// SECTION 12 — AI ACTION OVERLAYS
+// Brief SVG-based visual indicators shown during AI turns.
+// Using SVG elements avoids all HTML div pixel-offset issues.
+// =============================================================================
+
+function showTerritoryOverlay(territoryId, emoji, color, duration) {
+  var svgEl = document.querySelector("#game-map #map-inner svg");
+  if (!svgEl) return;
+
+  var coord = TERRITORY_COORDS[territoryId];
+  if (!coord) return;
+
+  var ns = "http://www.w3.org/2000/svg";
+
+  // Background circle (only if color provided).
+  var circle = null;
+  if (color) {
+    circle = document.createElementNS(ns, "circle");
+    circle.setAttribute("cx", coord.x);
+    circle.setAttribute("cy", coord.y + 14);
+    circle.setAttribute("r", "10");
+    circle.setAttribute("fill", color);
+    circle.setAttribute("fill-opacity", "0.85");
+    circle.setAttribute("pointer-events", "none");
+    svgEl.appendChild(circle);
+  }
+
+  // Emoji text sits just above the territory name label.
+  var text = document.createElementNS(ns, "text");
+  text.setAttribute("x", coord.x);
+  text.setAttribute("y", coord.y - 2);
+  text.setAttribute("text-anchor", "middle");
+  text.setAttribute("font-size", "14");
+  text.setAttribute("pointer-events", "none");
+  text.textContent = emoji;
+  svgEl.appendChild(text);
+
+  setTimeout(function() {
+    if (text.parentNode) text.parentNode.removeChild(text);
+    if (circle && circle.parentNode) circle.parentNode.removeChild(circle);
+  }, duration || 500);
+}
+
+function showReinforcePip(territoryId) {
+  showTerritoryOverlay(territoryId, "➕", null, 450);
+}
+
+function showAttackPip(territoryId, houseColor) {
+  showTerritoryOverlay(territoryId, "⚔️", houseColor, 550);
+}
+
 
 // Tap handler stubs — inputHandler.js overwrites these after init.
 function handleTerritoryTap(id) {
