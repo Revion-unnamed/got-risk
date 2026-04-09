@@ -680,7 +680,41 @@ function actionEndTurn() {
 // Functions that compile rich display objects for the renderer.
 // Keeps renderer.js free of game logic.
 // =============================================================================
-
+/**
+ * Places armies on a territory regardless of current phase.
+ * Used only for post-elimination bonus armies during the attack phase.
+ * Validates ownership but skips the phase assertion.
+ */
+function actionPlaceReinforcementsAnyPhase(territoryId, count, session) {
+  if (count > session.armiesRemaining) {
+    return { success: false, error: "No armies left to place." };
+  }
+  var state = getState();
+  var currentHouse = state.players[state.currentPlayerIndex].houseId;
+  if (!state.territories[territoryId] || state.territories[territoryId].owner !== currentHouse) {
+    return { success: false, error: "You don't own that territory." };
+  }
+  try {
+    // Direct army placement bypassing phase check.
+    addArmiesDirectly(territoryId, count);
+    session.armiesRemaining -= count;
+    return { success: true, armiesRemaining: session.armiesRemaining };
+  } catch(err) {
+    return { success: false, error: err.message };
+  }
+}
+/**
+ * Adds armies to a territory without phase validation.
+ * Only used for post-elimination card trade bonuses during attack phase.
+ */
+function addArmiesDirectly(territoryId, count) {
+  if (!_state.territories[territoryId]) {
+    throw new Error("addArmiesDirectly: unknown territory " + territoryId);
+  }
+  _state.territories[territoryId].armies += count;
+  _log("Placed " + count + " bonus " + (count === 1 ? "army" : "armies") 
+    + " on " + (_state.territories[territoryId] ? (TERRITORIES[territoryId] ? TERRITORIES[territoryId].name : territoryId) : territoryId) + ".");
+}
 /**
  * Returns a display-ready summary of all territories.
  * Merges static boardData with live state — renderer uses this, not raw state.
