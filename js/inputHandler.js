@@ -556,9 +556,84 @@ function _handleTradeCards() {
   _rewireCardPanel();
 
   // Update army counter if in reinforce phase.
-  _updateReinforceCounter();
   renderMap();
   renderLog();
+
+  // If we're in the attack phase (elimination trade), the bonus armies
+  // need to be placed before attacking can continue.
+  // Re-render the action panel to show a reinforce counter + done button,
+  // then rewire so the player can place armies before resuming attacks.
+  var stateAfterTrade = getState();
+  if (stateAfterTrade.phase === "attack" && _reinforceSession.armiesRemaining > 0) {
+    _showPostEliminationReinforce();
+    return;
+  }
+  _updateReinforceCounter();
+}
+
+// -----------------------------------------------------------------------------
+// POST-ELIMINATION REINFORCE
+// Called when a player earns armies from a forced card trade during the
+// attack phase (after eliminating an opponent and inheriting their cards).
+// Shows a temporary reinforce UI until all bonus armies are placed.
+// -----------------------------------------------------------------------------
+
+function _showPostEliminationReinforce() {
+  var panel = document.getElementById("game-action-panel");
+  if (!panel) return;
+
+  panel.innerHTML = '<p class="action-instructions">Place ' 
+    + _reinforceSession.armiesRemaining 
+    + ' bonus ' + (_reinforceSession.armiesRemaining === 1 ? 'army' : 'armies')
+    + ' from card trade</p>'
+    + '<div class="action-army-counter" id="action-army-counter">'
+    + _reinforceSession.armiesRemaining + ' armies left</div>'
+    + '<button id="btn-end-bonus-reinforce" class="btn btn-primary" disabled>Done</button>';
+
+  // Wire map taps to place armies on owned territories.
+  // We temporarily override handleTerritoryTap for this mini-phase.
+  handleTerritoryTap = function(id) {
+    if (_reinforceSession.armiesRemaining <= 0) return;
+    var s = getState();
+    var currentHouse = s.players[s.currentPlayerIndex].houseId;
+    if (!s.territories[id] || s.territories[id].owner !== currentHouse) {
+      _showError("Place armies on your own territories.");
+      return;
+    }
+    // Use placeReinforcements directly — we're in attack phase so
+    // actionPlaceReinforcements would fail its phase check.
+    // Instead call it through the session manually and mutate state via
+    // the gameLogic wrapper with a phase override isn't available,
+    // so we borrow actionPlaceReinforcements which calls placeReinforcements
+    // which calls _assertPhase(PHASES.REINFORCE) — that will throw.
+    // Solution: temporarily use a direct state-safe path.
+    var result = actionPlaceReinforcementsAnyPhase(id, 1, _reinforceSession);
+    if (!result.success) { _showError(result.error); return; }
+
+    renderMap();
+    renderLog();
+
+    var counter = document.getElementById("action-army-counter");
+    if (counter) counter.textContent = _reinforceSession.armiesRemaining + " armies left";
+    var doneBtn = document.getElementById("btn-end-bonus-reinforce");
+    if (doneBtn) doneBtn.disabled = _reinforceSession.armiesRemaining > 0;
+  };
+
+  _wireBtn("btn-end-bonus-reinforce", function() {
+    // Restore normal territory tap and return to attack phase.
+    handleTerritoryTap = function(id) {
+      var state = getState();
+      if (state.gameOver) return;
+      if (mustTradeCards()) { _showError("Trade cards before taking any action."); return; }
+      switch (state.phase) {
+        case "reinforce":  _handleReinforceTerritory(id);  break;
+        case "attack":     _handleAttackTerritory(id);     break;
+        case "manoeuvre":  _handleManoeuvreTerritory(id);  break;
+      }
+    };
+    renderGameScreen();
+    _rewire();
+  });
 }
 
 // Called by renderer when player taps a card.
