@@ -103,6 +103,15 @@ function _startTurn() {
     });
     return;
   }
+// If player starts their turn with 5 cards, force a trade before anything else.
+  // This prevents them drawing a 6th card later and being force-traded mid-attack.
+  if (getCurrentPlayer().cards.length >= 5) {
+    _reinforceSession.armiesRemaining = getReinforceCount();
+    renderGameScreen();
+    showCardPanel();
+    _rewireCardPanel();
+    return;
+  }
 
   // Human player — initialise session and wire buttons as normal.
   _reinforceSession.armiesRemaining = getReinforceCount();
@@ -517,15 +526,15 @@ function _rewireDraw() {
 // -----------------------------------------------------------------------------
 function _rewireCardPanel() {
   _wireBtn("btn-close-cards", function() {
-    // Block closing if a trade is mandatory.
-    if (mustTradeCards()) {
-      _showError("You must trade a set before continuing.");
-      return;
-    }
-    _sel.cardSelected = [];
-    updateCardSelection([]);
-    hideCardPanel();
-  });
+      if (getCurrentPlayer().cards.length >= 5) {
+        _showError("Trade a set before continuing — you have 5 cards.");
+        return;
+      }
+      _sel.cardSelected = [];
+      updateCardSelection([]);
+      hideCardPanel();
+    });
+  
 
   _wireBtn("btn-trade-cards", function() {
     _handleTradeCards();
