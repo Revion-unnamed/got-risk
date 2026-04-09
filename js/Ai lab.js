@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>AI Evolution Lab — RISK: GoT</title>
+  <style>
+    :root {
+      --bg:      #1a1612;
+      --surface: #241e18;
+      --surf2:   #2e2720;
+      --border:  #4a3f30;
+      --text:    #e8dcc8;
+      --muted:   #9e8e78;
+      --gold:    #c9a84c;
+      --gold-dk: #8a6f2e;
+      --danger:  #c0392b;
+      --success: #27ae60;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: system-ui, sans-serif; font-size: 14px;
+      min-height: 100vh; padding: 16px;
+    }
+    h1 { color: var(--gold); font-size: 1.4rem; margin-bottom: 4px; }
+    h2 { color: var(--gold); font-size: 1rem; margin: 16px 0 8px; }
+    p.sub { color: var(--muted); font-size: 0.8rem; margin-bottom: 16px; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px; margin-bottom: 12px;
+    }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 10px 20px; border: 1px solid var(--gold-dk);
+      background: var(--gold-dk); color: var(--text); border-radius: 6px;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer; min-height: 40px;
+    }
+    .btn:hover { background: var(--gold); color: var(--bg); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-danger { border-color: var(--danger); background: var(--danger); }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; min-height: 32px; }
+
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+
+    .stat-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      margin-bottom: 8px;
+    }
+    .stat {
+      background: var(--surf2); border-radius: 6px; padding: 8px;
+      text-align: center;
+    }
+    .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--gold); }
+    .stat-lbl { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+    .param-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .param-item {
+      background: var(--surf2); border-radius: 6px; padding: 8px;
+    }
+    .param-name { font-size: 0.7rem; color: var(--muted); margin-bottom: 2px; }
+    .param-val  { font-size: 1rem; font-weight: 700; color: var(--gold); }
+
+    .log-box {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 8px; height: 200px; overflow-y: auto;
+      font-size: 0.75rem; color: var(--muted); font-family: monospace;
+    }
+    .log-box p { padding: 1px 0; border-bottom: 1px solid rgba(74,63,48,0.2); }
+    .log-win  { color: var(--gold); font-weight: 700; }
+    .log-info { color: #6ab0d4; }
+    .log-mut  { color: #a0c878; }
+
+    .gen-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+    .gen-table th { color: var(--muted); font-weight: 600; padding: 4px 6px;
+                    border-bottom: 1px solid var(--border); text-align: left; }
+    .gen-table td { padding: 4px 6px; border-bottom: 1px solid rgba(74,63,48,0.3); }
+    .gen-table tr.best td { color: var(--gold); }
+
+    #progress-bar-wrap {
+      background: var(--surf2); border-radius: 4px; height: 8px;
+      margin-bottom: 8px; overflow: hidden; display: none;
+    }
+    #progress-bar {
+      height: 100%; background: var(--gold); width: 0%; transition: width 0.2s;
+    }
+
+    .badge {
+      display: inline-block; padding: 2px 7px; border-radius: 4px;
+      font-size: 0.7rem; font-weight: 700;
+    }
+    .badge-gold { background: rgba(201,168,76,0.2); color: var(--gold); }
+    .badge-green { background: rgba(39,174,96,0.2); color: var(--success); }
+  </style>
+</head>
+<body>
+
+<h1>⚔️ AI Evolution Lab</h1>
+<p class="sub">Evolves AI parameters through simulated RISK games. Results persist in localStorage.</p>
+
+<!-- Status -->
+<div class="card">
+  <div class="stat-grid">
+    <div class="stat">
+      <div class="stat-val" id="stat-gen">0</div>
+      <div class="stat-lbl">Generation</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-games">0</div>
+      <div class="stat-lbl">Games Run</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-best-score">—</div>
+      <div class="stat-lbl">Best Win Rate</div>
+    </div>
+  </div>
+  <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+  <div class="row">
+    <button class="btn" id="btn-run-gen" onclick="runGeneration()">▶ Run Generation</button>
+    <button class="btn" id="btn-run-auto" onclick="toggleAuto()">⏩ Auto-Run</button>
+    <button class="btn btn-sm" onclick="exportParams()">💾 Export Best Params</button>
+    <button class="btn btn-sm btn-danger" onclick="resetAll()">🗑 Reset</button>
+  </div>
+</div>
+
+<!-- Current best params -->
+<div class="card">
+  <h2>Current Best Parameters</h2>
+  <div class="param-grid" id="param-display"></div>
+</div>
+
+<!-- Log -->
+<div class="card">
+  <h2>Simulation Log</h2>
+  <div class="log-box" id="log-box"></div>
+</div>
+
+<!-- History table -->
+<div class="card">
+  <h2>Generation History</h2>
+  <div style="overflow-x:auto">
+    <table class="gen-table">
+      <thead>
+        <tr>
+          <th>Gen</th><th>Winner</th><th>Wins</th>
+          <th>MaxAtk</th><th>MinArmy</th><th>ManChance</th>
+          <th>RegWeight</th><th>ManFrac</th><th>AtkDice</th>
+        </tr>
+      </thead>
+      <tbody id="history-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Game scripts — load your actual game logic -->
+<script src="js/boardData.js"></script>
+<script src="js/gameState.js"></script>
+<script src="js/gameLogic.js"></script>
+
+<script>
+// =============================================================================
+// AI EVOLUTION LAB
+// Runs headless RISK simulations to evolve AI parameters.
+// No rendering — pure logic. Uses the real gameState/gameLogic functions.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// STORAGE KEY
+// -----------------------------------------------------------------------------
+var STORAGE_KEY = "risk_ai_evolution_v1";
+
+// -----------------------------------------------------------------------------
+// PARAMETER DEFINITION
+// Each parameter has: key, label, default, min, max, step (mutation step size)
+// -----------------------------------------------------------------------------
+var PARAM_DEFS = [
+  { key: "maxAttacks",      label: "Max Attacks/Turn",    def: 5,    min: 1,    max: 12,   step: 1    },
+  { key: "minArmiesAtk",   label: "Min Armies to Attack", def: 4,    min: 2,    max: 8,    step: 1    },
+  { key: "manChance",      label: "Manoeuvre Chance",     def: 0.5,  min: 0.0,  max: 1.0,  step: 0.1  },
+  { key: "manFraction",    label: "Armies to Move (frac)",def: 0.5,  min: 0.1,  max: 0.9,  step: 0.1  },
+  { key: "regionWeight",   label: "Region Priority (0-1)",def: 0.7,  min: 0.0,  max: 1.0,  step: 0.1  },
+  { key: "atkDiceFrac",    label: "Attack Dice Aggr (0-1)",def:1.0,  min: 0.5,  max: 1.0,  step: 0.1  },
+];
+
+var DEFAULT_PARAMS = {};
+PARAM_DEFS.forEach(function(d) { DEFAULT_PARAMS[d.key] = d.def; });
+
+// -----------------------------------------------------------------------------
+// EVOLUTION STATE
+// -----------------------------------------------------------------------------
+var evoState = {
+  generation: 0,
+  gamesRun: 0,
+  bestParams: cloneParams(DEFAULT_PARAMS),
+  bestWinRate: 0,
+  history: []
+};
+
+var _autoRunning = false;
+var _autoTimer   = null;
+var _running     = false;
+
+// -----------------------------------------------------------------------------
+// BOOT
+// -----------------------------------------------------------------------------
+loadState();
+refreshUI();
+
+// -----------------------------------------------------------------------------
+// PARAMETER HELPERS
+// -----------------------------------------------------------------------------
+function cloneParams(p) {
+  var c = {};
+  PARAM_DEFS.forEach(function(d) { c[d.key] = p[d.key] !== undefined ? p[d.key] : d.def; });
+  return c;
+}
+
+function mutateParams(base) {
+  var m = cloneParams(base);
+  // Mutate 1-3 random parameters.
+  var numMutations = 1 + Math.floor(Math.random() * 3);
+  var keys = PARAM_DEFS.map(function(d) { return d.key; });
+  for (var i = 0; i < numMutations; i++) {
+    var def = PARAM_DEFS[Math.floor(Math.random() * PARAM_DEFS.length)];
+    var delta = (Math.random() < 0.5 ? 1 : -1) * def.step;
+    m[def.key] = Math.round(
+      Math.min(def.max, Math.max(def.min, m[def.key] + delta)) * 100
+    ) / 100;
+  }
+  return m;
+}
+
+function crossoverParams(parentA, parentB) {
+  // For each parameter, randomly inherit from A or B, with slight bias toward A (winner).
+  var child = cloneParams(parentA);
+  PARAM_DEFS.forEach(function(d) {
+    if (Math.random() < 0.4) {  // 40% chance to take from B
+      child[d.key] = parentB[d.key];
+    }
+  });
+  return child;
+}
+
+function paramsLabel(p) {
+  return "Atk:" + p.maxAttacks + " Min:" + p.minArmiesAtk +
+         " Man:" + p.manChance + " Reg:" + p.regionWeight;
+}
+
+// -----------------------------------------------------------------------------
+// HEADLESS AI — runs a full turn for one variant without any rendering
+// Uses the same gameLogic functions as the real AI.
+// -----------------------------------------------------------------------------
+
+function headlessAITurn(params, onDone) {
+  // Phase 1: Reinforce
+  _hlReinforce(params, function() {
+    // Phase 2: Attack
+    _hlAttack(params, function() {
+      // Phase 3: Manoeuvre
+      _hlManoeuvre(params, function() {
+        // Phase 4: Draw + End Turn
+        _hlDraw(onDone);
+      });
+    });
+  });
+}
+
+function _hlReinforce(params, next) {
+  // Trade all valid sets first.
+  var keepGoing = true;
+  while (keepGoing) {
+    var player = getCurrentPlayer();
+    var sets   = findAllValidCardSets(player.cards);
+    if (sets.length === 0) break;
+    var session = { armiesRemaining: 0 };
+    var result  = actionTradeCards(sets[0], session);
+    if (!result.success) break;
+  }
+
+  var session = { armiesRemaining: getReinforceCount() };
+  var state   = getState();
+  var house   = state.players[state.currentPlayerIndex].houseId;
+
+  // Get frontline targets only.
+  var allTargets = getValidReinforceTargets();
+  var frontline  = allTargets.filter(function(id) {
+    return TERRITORIES[id].adjacentTo.some(function(adj) {
+      return state.territories[adj] && state.territories[adj].owner !== house;
+    });
+  });
+  var targets = frontline.length > 0 ? frontline : allTargets;
+
+  // Get priority regions.
+  var prioTargets = _hlPriorityReinforce(house, targets);
+
+  while (session.armiesRemaining > 0) {
+    if (targets.length === 0) break;
+    var tid;
+    if (prioTargets.length > 0 && Math.random() < params.regionWeight) {
+      tid = prioTargets[Math.floor(Math.random() * prioTargets.length)];
+    } else {
+      tid = targets[Math.floor(Math.random() * targets.length)];
+    }
+    actionPlaceReinforcements(tid, 1, session);
+  }
+
+  var r = actionEndReinforce(session);
+  if (!r.success) { next(); return; }
+  next();
+}
+
+function _hlPriorityReinforce(houseId, targets) {
+  var state    = getState();
+  var priority = [];
+  Object.keys(REGIONS).forEach(function(rid) {
+    var reg   = REGIONS[rid];
+    var total = reg.territories.length;
+    var owned = reg.territories.filter(function(t) {
+      return state.territories[t] && state.territories[t].owner === houseId;
+    }).length;
+    if (owned / total > 0.5) {
+      reg.territories.forEach(function(t) {
+        if (targets.indexOf(t) >= 0) priority.push(t);
+      });
+    }
+  });
+  return priority;
+}
+
+function _hlAttack(params, next) {
+  var attacksLeft = Math.floor(Math.random() * (params.maxAttacks + 1));
+
+  function _try() {
+    if (attacksLeft <= 0) { actionEndAttack(); next(); return; }
+
+    var state   = getState();
+    var house   = state.players[state.currentPlayerIndex].houseId;
+    var sources = getValidAttackSources().filter(function(id) {
+      return state.territories[id] && state.territories[id].armies >= params.minArmiesAtk;
+    });
+    if (sources.length === 0) { actionEndAttack(); next(); return; }
+
+    attacksLeft--;
+    var fromId  = sources[Math.floor(Math.random() * sources.length)];
+    var fromArm = state.territories[fromId].armies;
+
+    // Priority: unowned territories in majority regions.
+    var allTargets = getValidAttackTargets(fromId).filter(function(id) {
+      return state.territories[id] && state.territories[id].armies < fromArm;
+    });
+    if (allTargets.length === 0) { _try(); return; }
+
+    var prioTargets = allTargets.filter(function(id) {
+      return _inPriorityRegion(house, id);
+    });
+    var toId;
+    if (prioTargets.length > 0 && Math.random() < params.regionWeight) {
+      toId = prioTargets[Math.floor(Math.random() * prioTargets.length)];
+    } else {
+      toId = allTargets[Math.floor(Math.random() * allTargets.length)];
+    }
+
+    var maxDice = getMaxAttackDice(fromId);
+    var dice    = Math.max(1, Math.round(maxDice * params.atkDiceFrac));
+    var result  = actionAttack(fromId, toId, dice);
+    if (!result.success) { _try(); return; }
+
+    if (result.data && result.data.conquered) {
+      var s2     = getState();
+      var attack = s2.activeAttack;
+      if (attack) {
+        var fromT   = s2.territories[attack.fromTerritoryId];
+        var maxMove = fromT ? fromT.armies - 1 : dice;
+        actionOccupy(maxMove);
+      }
+      if (getState().gameOver) { next(); return; }
+    }
+    _try();
+  }
+  _try();
+}
+
+function _inPriorityRegion(houseId, territoryId) {
+  var state = getState();
+  var result = false;
+  Object.keys(REGIONS).forEach(function(rid) {
+    var reg   = REGIONS[rid];
+    if (reg.territories.indexOf(territoryId) < 0) return;
+    var total = reg.territories.length;
+    var owned = reg.territories.filter(function(t) {
+      return state.territories[t] && state.territories[t].owner === houseId;
+    }).length;
+    if (owned / total > 0.5) result = true;
+  });
+  return result;
+}
+
+function _hlManoeuvre(params, next) {
+  if (Math.random() >= params.manChance) {
+    actionEndManoeuvre(); next(); return;
+  }
+  var sources = getValidManoeuvreSources();
+  if (sources.length === 0) { actionEndManoeuvre(); next(); return; }
+
+  var fromId  = sources[Math.floor(Math.random() * sources.length)];
+  var targets = getValidManoeuvreTargets(fromId);
+
+  // Prefer frontline targets.
+  var state = getState();
+  var house = state.players[state.currentPlayerIndex].houseId;
+  var frontline = targets.filter(function(id) {
+    return TERRITORIES[id].adjacentTo.some(function(adj) {
+      return state.territories[adj] && state.territories[adj].owner !== house;
+    });
+  });
+  var toTargets = frontline.length > 0 ? frontline : targets;
+  if (toTargets.length === 0) { actionEndManoeuvre(); next(); return; }
+
+  var toId    = toTargets[Math.floor(Math.random() * toTargets.length)];
+  var fromT   = state.territories[fromId];
+  var maxMove = fromT ? fromT.armies - 1 : 1;
+  var count   = Math.max(1, Math.floor(maxMove * params.manFraction));
+
+  actionManoeuvre(fromId, toId, count);
+  actionEndManoeuvre();
+  next();
+}
+
+function _hlDraw(onDone) {
+  var state = getState();
+  if (state.players[state.currentPlayerIndex].conqueredThisTurn) {
+    var result = actionDrawCard();
+    if (result.data && result.data.gameOver) {
+      onDone(true); return;
+    }
+  }
+  state = getState();
+  if (state.gameOver) { onDone(true); return; }
+
+  var r = actionEndTurn();
+  if (r.data && r.data.gameOver) { onDone(true); return; }
+  onDone(false);
+}
+
+// -----------------------------------------------------------------------------
+// SIMULATE ONE FULL GAME
+// 5 players, each with their own params variant.
+// Returns the houseId of the winner.
+// -----------------------------------------------------------------------------
+
+function simulateGame(variantParams) {
+  // Build player configs — 5 players, one per variant.
+  var houseIds = Object.keys(HOUSES).slice(0, 5);
+  var players  = houseIds.map(function(hid, i) {
+    return { houseId: hid, name: "V" + i, isAI: true };
+  });
+
+  var result = startNewGame({
+    mode: GAME_MODES.SKIRMISH,
+    players: players,
+    firstPlayerIndex: 0
+  });
+
+  if (!result.success) {
+    _logMsg("Game start failed: " + result.error, "danger");
+    return null;
+  }
+
+  // Run turns synchronously (no delays — headless).
+  var maxTurns = 500;  // safety cap
+  var turn     = 0;
+
+  while (turn < maxTurns) {
+    var state = getState();
+    if (state.gameOver) break;
+
+    var idx     = state.currentPlayerIndex;
+    var houseId = state.players[idx].houseId;
+    var houseIdx = houseIds.indexOf(houseId);
+    var params  = variantParams[houseIdx] || variantParams[0];
+
+    var done = false;
+    headlessAITurn(params, function(isOver) { done = isOver; });
+
+    state = getState();
+    if (state.gameOver || done) break;
+    turn++;
+  }
+
+  var finalState = getState();
+  return finalState.winner || null;
+}
+
+// -----------------------------------------------------------------------------
+// RUN ONE GENERATION
+// Generates 5 variants, plays 5 games, picks winner by win count.
+// -----------------------------------------------------------------------------
+
+function runGeneration() {
+  if (_running) return;
+  _running = true;
+  setRunning(true);
+
+  var gen       = evoState.generation + 1;
+  var bestParams = evoState.bestParams;
+
+  // Build 5 variants:
+  // 0 = exact current best (control)
+  // 1 = mutation of best
+  // 2 = mutation of best
+  // 3 = crossover of best + mutation
+  // 4 = heavy mutation (exploration)
+  var mutation1 = mutateParams(bestParams);
+  var mutation2 = mutateParams(bestParams);
+  var crossover = crossoverParams(bestParams, mutation1);
+  var explorer  = mutateParams(mutateParams(mutateParams(bestParams)));
+
+  var variants  = [bestParams, mutation1, mutation2, crossover, explorer];
+  var varLabels = ["Control", "Mut-1", "Mut-2", "Crossover", "Explorer"];
+  var winCounts = [0, 0, 0, 0, 0];
+  var houseIds  = Object.keys(HOUSES).slice(0, 5);
+
+  var GAMES_PER_GEN = 5;
+  var progress = document.getElementById("progress-bar");
+  var wrap     = document.getElementById("progress-bar-wrap");
+  if (wrap) wrap.style.display = "block";
+
+  _logMsg("── Generation " + gen + " ──", "info");
+
+  for (var g = 0; g < GAMES_PER_GEN; g++) {
+    var winner = simulateGame(variants);
+    evoState.gamesRun++;
+
+    if (winner) {
+      var winnerHouseIdx = houseIds.indexOf(winner);
+      if (winnerHouseIdx >= 0) {
+        winCounts[winnerHouseIdx]++;
+        _logMsg(
+          "Game " + (g+1) + ": " + HOUSES[winner].sigil + " " +
+          varLabels[winnerHouseIdx] + " wins", "win"
+        );
+      }
+    } else {
+      _logMsg("Game " + (g+1) + ": no winner (turn cap hit)", "");
+    }
+
+    if (progress) progress.style.width = ((g+1)/GAMES_PER_GEN*100) + "%";
+  }
+
+  // Find best variant by win count.
+  var maxWins    = 0;
+  var winnerIdx  = 0;
+  for (var i = 0; i < winCounts.length; i++) {
+    if (winCounts[i] > maxWins) { maxWins = winCounts[i]; winnerIdx = i; }
+  }
+
+  var winRate    = maxWins / GAMES_PER_GEN;
+  var newBest    = variants[winnerIdx];
+  var improved   = winRate > evoState.bestWinRate || winnerIdx > 0;
+
+  if (improved || gen === 1) {
+    evoState.bestParams  = cloneParams(newBest);
+    evoState.bestWinRate = winRate;
+    _logMsg(
+      "✓ New best: " + varLabels[winnerIdx] +
+      " (" + maxWins + "/" + GAMES_PER_GEN + " wins) " +
+      paramsLabel(newBest), "mut"
+    );
+  } else {
+    _logMsg("Control held — no improvement this generation.", "");
+  }
+
+  evoState.generation = gen;
+  evoState.history.push({
+    gen:        gen,
+    winner:     varLabels[winnerIdx],
+    wins:       maxWins,
+    winRate:    winRate,
+    params:     cloneParams(newBest)
+  });
+
+  saveState();
+  refreshUI();
+
+  if (wrap) wrap.style.display = "none";
+  if (progress) progress.style.width = "0%";
+
+  _running = false;
+  setRunning(false);
+}
+
+// -----------------------------------------------------------------------------
+// AUTO-RUN
+// -----------------------------------------------------------------------------
+
+function toggleAuto() {
+  _autoRunning = !_autoRunning;
+  var btn = document.getElementById("btn-run-auto");
+  if (_autoRunning) {
+    if (btn) btn.textContent = "⏹ Stop Auto";
+    _scheduleAuto();
+  } else {
+    if (btn) btn.textContent = "⏩ Auto-Run";
+    if (_autoTimer) clearTimeout(_autoTimer);
+  }
+}
+
+function _scheduleAuto() {
+  if (!_autoRunning) return;
+  _autoTimer = setTimeout(function() {
+    runGeneration();
+    if (_autoRunning) _scheduleAuto();
+  }, 100);
+}
+
+// -----------------------------------------------------------------------------
+// EXPORT BEST PARAMS
+// Outputs a snippet you can paste directly into ai.js
+// -----------------------------------------------------------------------------
+
+function exportParams() {
+  var p   = evoState.bestParams;
+  var out = "// ── Evolved AI Parameters (Gen " + evoState.generation + ") ──\n";
+  out    += "// Win rate: " + Math.round(evoState.bestWinRate * 100) + "%\n";
+  out    += "var AI_PARAMS = {\n";
+  PARAM_DEFS.forEach(function(d) {
+    out += "  " + d.key + ": " + p[d.key] + ",   // " + d.label + "\n";
+  });
+  out += "};\n";
+
+  var area = document.createElement("textarea");
+  area.value = out;
+  area.style.cssText = "position:fixed;top:10px;left:10px;width:80vw;height:160px;z-index:999;background:#1a1612;color:#c9a84c;border:1px solid #c9a84c;padding:8px;font-family:monospace;font-size:12px;border-radius:6px";
+  document.body.appendChild(area);
+  area.select();
+  document.execCommand("copy");
+  setTimeout(function() { document.body.removeChild(area); }, 4000);
+  _logMsg("📋 Params copied to clipboard — also shown above for 4 seconds.", "info");
+}
+
+// -----------------------------------------------------------------------------
+// RESET
+// -----------------------------------------------------------------------------
+
+function resetAll() {
+  if (!confirm("Reset all evolution data?")) return;
+  evoState = {
+    generation: 0, gamesRun: 0,
+    bestParams: cloneParams(DEFAULT_PARAMS),
+    bestWinRate: 0, history: []
+  };
+  saveState();
+  refreshUI();
+  document.getElementById("log-box").innerHTML = "";
+  _logMsg("Reset. Starting fresh from default parameters.", "info");
+}
+
+// -----------------------------------------------------------------------------
+// PERSISTENCE (localStorage)
+// -----------------------------------------------------------------------------
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(evoState));
+  } catch(e) { _logMsg("Save failed: " + e.message, ""); }
+}
+
+function loadState() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      var loaded = JSON.parse(raw);
+      evoState.generation  = loaded.generation  || 0;
+      evoState.gamesRun    = loaded.gamesRun    || 0;
+      evoState.bestWinRate = loaded.bestWinRate  || 0;
+      evoState.history     = loaded.history      || [];
+      evoState.bestParams  = loaded.bestParams
+        ? cloneParams(loaded.bestParams)
+        : cloneParams(DEFAULT_PARAMS);
+    }
+  } catch(e) { /* fresh start */ }
+}
+
+// -----------------------------------------------------------------------------
+// UI HELPERS
+// -----------------------------------------------------------------------------
+
+function refreshUI() {
+  document.getElementById("stat-gen").textContent   = evoState.generation;
+  document.getElementById("stat-games").textContent = evoState.gamesRun;
+  document.getElementById("stat-best-score").textContent =
+    evoState.generation > 0
+      ? Math.round(evoState.bestWinRate * 100) + "%"
+      : "—";
+
+  // Params display
+  var pd  = document.getElementById("param-display");
+  var html = "";
+  PARAM_DEFS.forEach(function(d) {
+    html += '<div class="param-item">'
+      + '<div class="param-name">' + d.label + '</div>'
+      + '<div class="param-val">'  + evoState.bestParams[d.key] + '</div>'
+      + '</div>';
+  });
+  pd.innerHTML = html;
+
+  // History table
+  var tbody = document.getElementById("history-tbody");
+  var rows  = "";
+  var hist  = evoState.history.slice().reverse().slice(0, 30);
+  hist.forEach(function(h) {
+    var isBest = h.winRate === evoState.bestWinRate;
+    rows += '<tr' + (isBest ? ' class="best"' : '') + '>'
+      + '<td>' + h.gen + '</td>'
+      + '<td>' + h.winner + '</td>'
+      + '<td>' + h.wins  + '/5</td>'
+      + '<td>' + h.params.maxAttacks    + '</td>'
+      + '<td>' + h.params.minArmiesAtk  + '</td>'
+      + '<td>' + h.params.manChance     + '</td>'
+      + '<td>' + h.params.regionWeight  + '</td>'
+      + '<td>' + h.params.manFraction   + '</td>'
+      + '<td>' + h.params.atkDiceFrac   + '</td>'
+      + '</tr>';
+  });
+  tbody.innerHTML = rows || '<tr><td colspan="9" style="color:var(--muted);padding:8px">No generations run yet</td></tr>';
+}
+
+function setRunning(yes) {
+  document.getElementById("btn-run-gen").disabled = yes;
+}
+
+function _logMsg(msg, type) {
+  var box = document.getElementById("log-box");
+  var p   = document.createElement("p");
+  p.textContent = msg;
+  if (type === "win")  p.className = "log-win";
+  if (type === "info") p.className = "log-info";
+  if (type === "mut")  p.className = "log-mut";
+  box.insertBefore(p, box.firstChild);
+}
+</script>
+</body>
+</html>
