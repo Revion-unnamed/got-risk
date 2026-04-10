@@ -178,7 +178,12 @@ function _aiDoAttack(onDone) {
 
   _tryAttack();
 }
-
+function _aiEndAttack(onDone) {
+  actionEndAttack();
+  renderGameScreen();
+  setTimeout(function() {
+    _aiDoManoeuvre(onDone); }, AI_DELAY);}
+    
 // =============================================================================
 // PHASE 3 — MANOEUVRE
 // 50% chance to move armies. Picks a random source and target, moves half
